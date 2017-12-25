@@ -9,7 +9,7 @@ import scala.util.Random
   * This class implements a consumer thread which receives and processes tasks through
   * its mailbox.
   */
-class Consumer (id: Int) extends Thread {
+class Worker(id: Int) extends Thread {
   import Constant._
 
   val LOG =  Logger.getLogger(getClass)
@@ -27,7 +27,7 @@ class Consumer (id: Int) extends Thread {
   override def run(): Unit = {
     LOG.info("consumer " + id + " started")
 
-    val efforts = ListBuffer[Effort]()
+    val tasks = ListBuffer[Task]()
 
     while (true) {
       // Wait to receive a task, if there is one
@@ -35,11 +35,11 @@ class Consumer (id: Int) extends Thread {
         case Some(task) =>
           // If not done, record the effort for analysis later
           if(task != DONE)
-            efforts.append(consume(task))
+            tasks.append(process(task))
           else {
             // If done, log the effort and stop the thread
-            efforts.foreach { effort =>
-              LOG.info("duration " + effort.duration)
+            tasks.foreach { task =>
+              LOG.info("duration " + task.duration)
             }
             return
           }
@@ -51,18 +51,18 @@ class Consumer (id: Int) extends Thread {
   }
 
   /**
-    * Consumes a task.
+    * Processes a task.
     * @param task Task
     */
-  def consume(task: Task): Effort = {
+  def process(task: Task): Task = {
     if(task != DONE) {
       LOG.debug("consuming task " + task.num)
       val working = ran.nextInt(MAX_WORKING)
-
       Thread.sleep(working)
-      Effort(working)
+
+      Task(task.num,working)
     }
     else
-      Effort(-1)
+      DONE
   }
 }

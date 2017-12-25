@@ -1,17 +1,16 @@
 package scalaparallel.thread.actor
 
+import scalaparallel.thread.actor.Constant._
 import org.apache.log4j.Logger
-
 import scala.util.Random
 
-object Producer {
+object Dispatcher extends App {
   val LOG =  Logger.getLogger(getClass)
 
-  def main(args: Array[String]): Unit = {
   val config = Config()
 
-    val consumers = (0 until config.numConsumers).foldLeft(List[Consumer]()) { (list, n) =>
-      val consumer = new Consumer(n)
+    val consumers = (0 until config.numConsumers).foldLeft(List[Worker]()) { (list, n) =>
+      val consumer = new Worker(n)
 
       consumer.start
 
@@ -29,9 +28,8 @@ object Producer {
     }
 
     consumers.foreach { consumer =>
-      consumer.send(Constant.DONE)
+      consumer.send(DONE)
       consumer.join
-    }
   }
 
   /**
@@ -40,10 +38,10 @@ object Producer {
     * @return Task
     */
   def produce(num: Int): Task = {
-    Thread.sleep(250)
+    Thread.sleep(MAX_PRODUCING)
 
     LOG.debug("producing task "+num)
-    Task(num)
+    Task(num, MAX_PRODUCING)
   }
 }
 

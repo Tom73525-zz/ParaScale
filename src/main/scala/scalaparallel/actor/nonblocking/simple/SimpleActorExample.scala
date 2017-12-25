@@ -1,3 +1,5 @@
+package scalaparallel.actor.nonblocking.simple
+
 // https://www.youtube.com/watch?v=v3qiXW3HyGI
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 
