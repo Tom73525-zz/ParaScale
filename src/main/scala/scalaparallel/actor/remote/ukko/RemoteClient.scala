@@ -1,16 +1,16 @@
-package scalaparallel.actor.remote.util
+package scalaparallel.actor.remote.ukko
 
 import java.io.{EOFException, FileInputStream, ObjectInputStream}
 import java.net.ServerSocket
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 
-object Remote {
+object RemoteClient {
   def main(args: Array[String]): Unit = {
     val system = ActorSystem("Transceiver")
     val actor: ActorRef = system.actorOf(Props[TestActor],"TestActor")
 
-    new Remote(actor,9000)
+    new RemoteClient(actor,9000)
 
     Thread.sleep(1000)
 
@@ -18,14 +18,16 @@ object Remote {
   }
 }
 
-class Remote(actor: ActorRef, port: Int) extends Thread {
-
-
-//  val fi = new FileInputStream("c:/tmp/trans.out")
-//  val ois = new ObjectInputStream(fi)
-
+/**
+  * This actor runs on the client side and relays message to the local actor
+  * @param actor Local actor
+  * @param port Port to listen for remote messages.
+  */
+class RemoteClient(actor: ActorRef, port: Int) extends Thread {
+  // Start the thread to receive inbound messages
   new Thread(this).start
 
+  /** Relays inbound message to the (local) actor */
   override def run(): Unit = {
     println("receiver for actor started")
     val socket = new ServerSocket(port)
@@ -35,11 +37,15 @@ class Remote(actor: ActorRef, port: Int) extends Thread {
         println("waiting to accept connection")
         val clientSocket = socket.accept()
 
+        // Deserialize the message
         println("got connection")
         val ois = new ObjectInputStream(clientSocket.getInputStream)
-        val obj = ois.readObject()
-        actor ! obj
+        val msg = ois.readObject()
 
+        // Relay message to the (local) actor
+        actor ! msg
+
+        ois.close
         clientSocket.close
       }
     }
@@ -50,24 +56,6 @@ class Remote(actor: ActorRef, port: Int) extends Thread {
   }
 }
 
-object RemoteActor2 {
-
-}
-
-class RemoteActor2 extends Actor {
-  println("RemoteActor2 constructor invoked")
-  val system = ActorSystem("Transceiver")
-  val actor: ActorRef = system.actorOf(Props[RemoteActor2],"TestActor")
-  val receiver = new Remote(actor,0)
-
-  new Thread(receiver).start
-
-
-  def receive = {
-    case s: String =>
-  }
-}
-
 class TestActor extends Actor {
 
   override def receive = {
@@ -75,5 +63,11 @@ class TestActor extends Actor {
       println("got an A!")
     case s: String =>
       println(s)
+    case pkt: Packet =>
+      println("got a packet from "+pkt.host)
+      pkt.payload match {
+        case a: A =>
+          println("got an A via the packet")
+      }
   }
 }
