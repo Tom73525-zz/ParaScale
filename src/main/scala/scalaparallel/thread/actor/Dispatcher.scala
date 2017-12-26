@@ -9,7 +9,7 @@ object Dispatcher extends App {
 
   val config = Config()
 
-    val consumers = (0 until config.numConsumers).foldLeft(List[Worker]()) { (list, n) =>
+    val consumers = (0 until config.numWorkers).foldLeft(List[Worker]()) { (list, n) =>
       val consumer = new Worker(n)
 
       consumer.start

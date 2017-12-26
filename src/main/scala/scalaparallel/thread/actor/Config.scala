@@ -1,12 +1,18 @@
 package scalaparallel.thread.actor
 
-case class Config(numConsumers: Int, numTasks: Int)
+case class Config(numWorkers: Int, numTasks: Int)
 
 object Config {
   def apply(): Config = {
-    val consumersProp = System.getProperty("scalaparallel.consumers")
+    import java.io.FileInputStream
 
-    val numConsumers = consumersProp match {
+    val properties = System.getProperties
+
+    properties.load(new FileInputStream("parascale.conf"))
+
+    val workersProp = System.getProperty("parascale.workers")
+
+    val numWorkers = workersProp match {
       case prop:String =>
         prop.toInt
 
@@ -14,8 +20,8 @@ object Config {
         Runtime.getRuntime.availableProcessors
     }
 
-    val tasksProp = System.getProperty("scalaparallel.tasks")
-    val numTasks = consumersProp match {
+    val tasksProp = System.getProperty("parascale.tasks")
+    val numTasks = workersProp match {
       case prop:String =>
         prop.toInt
 
@@ -23,6 +29,6 @@ object Config {
         Constant.NUM_TASKS
     }
 
-    Config(numConsumers, numTasks)
+    Config(numWorkers, numTasks)
   }
 }
