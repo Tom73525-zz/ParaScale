@@ -20,30 +20,27 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package scalaparallel.actor.remote.ukko
+package scalaparallel.actor.nonblocking
 
-import java.io.ObjectOutputStream
-import java.net.Socket
+package object perfect {
+  /** Candidate perfect numbers */
+  val candidates: List[Long] = List(6, 28, 496, 8128, 33550336, 33550336+1, 8589869056L, 137438691328L, 2305843008139952128L)
 
-/**
-  * A wrapper class for remote actors to reply
-  * @param host Source host
-  * @param port Source port
-  * @param payload Inbound payload
-  */
-case class Packet(host: String, port: Int, payload: Any) extends Serializable {
-  def reply(msg: Any): Unit = {
-    val socket = new Socket(host,port)
+  /**
+    * Convenience method to measure the runtime of a method.
+    * @param method Method to invoke
+    * @param number Number to query
+    * @return True if the method is true, false otherwise
+    */
+  def ask(method: Long => Boolean, number: Long): String = {
+    val t0 = System.nanoTime
 
-    val os = socket.getOutputStream
+    val result = method(number)
 
-    val oos = new ObjectOutputStream(os)
+    val t1 = System.nanoTime
 
-    oos.writeObject(msg)
+    val answer = if(result) "YES" else "NO"
 
-    oos.flush
-    oos.close
-
-    os.close
+    answer + " dt = "+(t1-t0)/1000000000.0 + "s"
   }
 }

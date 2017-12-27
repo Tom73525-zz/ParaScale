@@ -10,7 +10,7 @@ object Config {
 
     properties.load(new FileInputStream("parascale.conf"))
 
-    val workersProp = System.getProperty("parascale.workers")
+    val workersProp = System.getProperty("workers")
 
     val numWorkers = workersProp match {
       case prop:String =>
@@ -20,7 +20,7 @@ object Config {
         Runtime.getRuntime.availableProcessors
     }
 
-    val tasksProp = System.getProperty("parascale.tasks")
+    val tasksProp = System.getProperty("tasks")
     val numTasks = workersProp match {
       case prop:String =>
         prop.toInt

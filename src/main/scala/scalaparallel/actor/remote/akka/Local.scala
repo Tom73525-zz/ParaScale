@@ -37,7 +37,7 @@ object LocalActor {
 
   def main(args: Array[String]) {
 
-    val configFile = getClass.getClassLoader.getResource("local-configuration.conf").getFile
+    val configFile = getClass.getClassLoader.getResource("scalaparallel/actor/remote/akka/local-configuration.conf").getFile
     val config = ConfigFactory.parseFile(new File(configFile))
     val system = ActorSystem("ClientSystem",config)
     val localActor = system.actorOf(Props[LocalActor], name="local")

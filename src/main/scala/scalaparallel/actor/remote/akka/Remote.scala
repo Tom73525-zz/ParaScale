@@ -21,7 +21,7 @@ class RemoteActor extends Actor {
 object RemoteActor{
   def main(args: Array[String]) {
     //get the configuration file from classpath
-    val configFile = getClass.getClassLoader.getResource("remote-configuration.conf").getFile
+    val configFile = getClass.getClassLoader.getResource("scalaparallel/actor/remote/akka/remote-configuration.conf").getFile
     //parse the config
     val config = ConfigFactory.parseFile(new File(configFile))
     //create an actor system with that config

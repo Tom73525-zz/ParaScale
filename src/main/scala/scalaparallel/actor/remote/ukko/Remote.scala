@@ -22,28 +22,45 @@
  */
 package scalaparallel.actor.remote.ukko
 
-import java.io.ObjectOutputStream
-import java.net.Socket
+import java.io.{EOFException, FileInputStream, ObjectInputStream}
+import java.net.ServerSocket
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 
 /**
-  * A wrapper class for remote actors to reply
-  * @param host Source host
-  * @param port Source port
-  * @param payload Inbound payload
+  * This actor runs on the client side and relays message to the local actor
+  * @param actor Local actor
+  * @param localPort Port to listen for inbound remote messages.
   */
-case class Packet(host: String, port: Int, payload: Any) extends Serializable {
-  def reply(msg: Any): Unit = {
-    val socket = new Socket(host,port)
+class Remote(actor: ActorRef, localPort: Int) extends Thread {
+  // Start the thread to receive inbound messages
+  new Thread(this).start
 
-    val os = socket.getOutputStream
+  /** Relays inbound message to the (local) actor */
+  override def run(): Unit = {
+    println("receiver for actor started")
+    val socket = new ServerSocket(localPort)
 
-    val oos = new ObjectOutputStream(os)
+    try {
+      while (true) {
+        println("waiting to accept connection")
+        val clientSocket = socket.accept()
 
-    oos.writeObject(msg)
+        // Deserialize the message
+        println("got connection")
+        val ois = new ObjectInputStream(clientSocket.getInputStream)
+        val msg = ois.readObject()
 
-    oos.flush
-    oos.close
+        // Relay message to the (local) actor
+        actor ! msg
 
-    os.close
+        ois.close
+        clientSocket.close
+      }
+    }
+    catch {
+      case _: EOFException =>
+
+    }
   }
 }
+

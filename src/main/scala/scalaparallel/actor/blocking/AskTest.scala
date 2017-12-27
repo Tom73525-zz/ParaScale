@@ -19,7 +19,6 @@ class TestActor extends Actor {
 }
 
 object AskTest extends App {
-
   // create the system and actor
   val system = ActorSystem("AskTestSystem")
   val myActor = system.actorOf(Props[TestActor], name = "myActor")

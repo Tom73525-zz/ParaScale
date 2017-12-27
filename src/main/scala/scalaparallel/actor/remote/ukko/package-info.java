@@ -20,30 +20,10 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package scalaparallel.actor.remote.ukko
-
-import java.io.ObjectOutputStream
-import java.net.Socket
 
 /**
-  * A wrapper class for remote actors to reply
-  * @param host Source host
-  * @param port Source port
-  * @param payload Inbound payload
-  */
-case class Packet(host: String, port: Int, payload: Any) extends Serializable {
-  def reply(msg: Any): Unit = {
-    val socket = new Socket(host,port)
+ * Classes in this package are an alternative to Akka remote actors which are fraught with
+ * compatibilities problems in the latest jar files.
+ */
+package scalaparallel.actor.remote.ukko;
 
-    val os = socket.getOutputStream
-
-    val oos = new ObjectOutputStream(os)
-
-    oos.writeObject(msg)
-
-    oos.flush
-    oos.close
-
-    os.close
-  }
-}

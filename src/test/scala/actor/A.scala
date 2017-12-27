@@ -1,3 +1,3 @@
-package scalaparallel.actor.remote.ukko
+package actor
 
 case class A(s: String) extends java.io.Serializable
