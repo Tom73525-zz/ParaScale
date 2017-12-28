@@ -4,8 +4,9 @@ package scalaparallel.actor.blocking
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-import scala.concurrent.{Await, ExecutionContext, Future}
+
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 case object AskNameMessage
@@ -33,5 +34,4 @@ object AskTest extends App {
   val future2: Future[String] = ask(myActor, AskNameMessage).mapTo[String]
   val result2 = Await.result(future2, 1 second)
   println(result2)
-
 }

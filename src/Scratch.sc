@@ -11,8 +11,11 @@ val p1 = List("1")
 "2" :: p1
 (1 to 10)
 for(i <- 1 to 3) yield "hello"+i
-val futures = for(i <- 0 until 5) yield Future { 99 }
-Await.result(futures(0), 1)
+import play.api.libs.json._
+val rawJson = """{"hello": "world", "age": 42}"""
+Json.parse(rawJson)
+
+
 
 
 

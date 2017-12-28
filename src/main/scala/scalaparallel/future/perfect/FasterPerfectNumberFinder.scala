@@ -20,9 +20,9 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package scalaparallel.actor.nonblocking.perfect
+package scalaparallel.future.perfect
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object FasterPerfectNumberFinder extends App {
@@ -79,10 +79,13 @@ object FasterPerfectNumberFinder extends App {
     */
   def sumOfFactorsInRange_(lower: Long, upper: Long, number: Long): Long = {
     var index: Long = lower
+
     var sum = 0L
+
     while(index <= upper) {
       if(number % index == 0L)
         sum += index
+
       index += 1L
     }
 
