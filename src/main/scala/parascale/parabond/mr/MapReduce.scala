@@ -75,7 +75,7 @@ object MapReduce {
     * @tparam V
     * @tparam K2
     * @tparam V2
-    * @return
+    * @return Map from portfolio id to a list of its values (actually only the first value)
     */
   def coarseMapReduce[K, V, K2, V2](
                                      input: List[(K, V)],
@@ -116,64 +116,73 @@ object MapReduce {
     val reduceds = reducedfutures.foldLeft(Map[K2,List[V2]]()) { (map, future) =>
       val result = Await.result(future, 100 seconds)
 
-      for((k, v) <- result) {
-        map(k) = v
+      result.foldLeft(Map[K2, List[V2]]()) { (map, rsult) =>
+        map + (rsult.key -> rsult.values)
       }
-
-      map
     }
 
     reduceds
   }
 
-  def coarseMapReduce2[K, V](
-                                     input: List[K],
-                                     mapping: K => List[(K, V)],
-                                     reducing: (K, List[V]) => List[V],
-                                     numMappers: Int,
-                                     numReducers: Int): Map[K, List[V]] = {
-
-    case class Intermediate(list: List[(K, V)])
-
-    case class Reduced(key: K, values: List[V])
-
-    val mapfutures: Iterator[Future[List[Intermediate]]] =
-      for (group <- input.grouped(input.length / numMappers)) yield Future {
-        for ((key, value) <- group) yield
-          Intermediate(mapping(key, value))
-      }
-
-    val intermediates = mapfutures.foldLeft(List[(K, V)]()) { (list, future) =>
-      val result = Await.result(future, 100 seconds)
-
-      result.foldLeft(list) { (list, intermediate) =>
-        list ++ intermediate.list
-      }
-    }
-
-    var dict = Map[K, List[V]]() withDefault (k => List())
-
-    for ((key, value) <- intermediates)
-      dict += (key -> (value :: dict(key)))
-
-    val reducedfutures: Iterator[Future[Iterable[Reduced]]] =
-      for (group <- dict.grouped(dict.size / numReducers)) yield Future {
-        for((key, values) <- group) yield
-          Reduced(key, reducing(key, values))
-      }
-
-    val reduceds = reducedfutures.foldLeft(Map[K,List[V]]()) { (map, future) =>
-      val result = Await.result(future, 100 seconds)
-
-      for((k, v) <- result) {
-        map(k) = v
-      }
-
-      map
-    }
-
-    reduceds
-  }
+//  /**
+//    *
+//    * @param input List of portfolio ids
+//    * @param mapping Maps a portfolio id to a list of (portfolio, result) pairs
+//    * @param reducing Reduces a (portolio id, list of bond values) pair to portfolio value as a single result
+//    * @param numMappers Number of mappers to use
+//    * @param numReducers Number of reduces to use
+//    * @tparam K Portfolio identifier
+//    * @tparam V Result
+//    * @return Map from portfolio id to portfolio value (just one in the list)
+//    */
+//  def coarseMapReduce2[K, V](
+//                                     input: List[K],
+//                                     mapping: K => List[(K, V)],
+//                                     reducing: (K, List[V]) => List[V],
+//                                     numMappers: Int,
+//                                     numReducers: Int): Map[K, List[V]] = {
+//
+//    case class Intermediate(list: List[(K, V)])
+//
+//    case class Reduced(key: K, values: List[V])
+//
+//    val mapfutures: Iterator[Future[List[Intermediate]]] =
+//      for (group <- input.grouped(input.length / numMappers)) yield Future {
+//        for ((key, value) <- group) yield
+//          Intermediate(mapping(key, value))
+//      }
+//
+//    val intermediates = mapfutures.foldLeft(List[(K, V)]()) { (list, future) =>
+//      val result = Await.result(future, 100 seconds)
+//
+//      result.foldLeft(list) { (list, intermediate) =>
+//        list ++ intermediate.list
+//      }
+//    }
+//
+//    var dict = Map[K, List[V]]() withDefault (k => List())
+//
+//    for ((key, value) <- intermediates)
+//      dict += (key -> (value :: dict(key)))
+//
+//    val reducedfutures: Iterator[Future[Iterable[Reduced]]] =
+//      for (group <- dict.grouped(dict.size / numReducers)) yield Future {
+//        for((key, values) <- group) yield
+//          Reduced(key, reducing(key, values))
+//      }
+//
+//    val reduceds = reducedfutures.foldLeft(Map[K,List[V]]()) { (map, future) =>
+//      val result = Await.result(future, 100 seconds)
+//
+//      for((k, v) <- result) {
+//        map(k) = v
+//      }
+//
+//      map
+//    }
+//
+//    reduceds
+//  }
 
 }
 
