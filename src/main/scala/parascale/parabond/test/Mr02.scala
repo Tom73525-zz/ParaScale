@@ -84,8 +84,8 @@ class Mr02 {
     
     // Build the portfolio list
     val input = (1 to n).foldLeft(List[(Int,List[Double])]()) { (list, p) =>
-      val r = ran.nextInt(100000)+1
-      list ::: List((r,Helper.curveCoeffs))
+      val portfId = ran.nextInt(100000)+1
+      list ::: List((portfId,Helper.curveCoeffs))
     }
     
     // Map-reduce the input
@@ -145,27 +145,26 @@ class Mr02 {
   /**
    * Maps a portfolio to a single price
    * @param portfId Portfolio id
-   * @param fitter Curve fitting coefficients
-   * @returns List of (portf id, bond value))
+   * @return List of (portf id, bond value result))
    */
-  def mapping(portfId: Int, fitter: List[Double]): List[(Int,Result)] = {
+  def mapping(portfId: Int, coeffs: List[Double]): List[(Int,Result)] = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
-    
+
     // Connect to the portfolio collection
     val portfsCollecton = mongo("Portfolios")
-    
-    // Retrieve the portfolio 
+
+    // Retrieve the portfolio
     val portfsQuery = MongoDbObject("id" -> portfId)
 
     val portfsCursor = portfsCollecton.find(portfsQuery)
-    
+
     // Get the bonds in the portfolio
     val bondIds = MongoHelper.asList(portfsCursor,"instruments")
-    
+
     // Connect to the bonds collection
     val bondsCollection = mongo("Bonds")
-    
+
     val value = bondIds.foldLeft(0.0) { (sum, id) =>
       // Get the bond from the bond collection
       val bondQuery = MongoDbObject("id" -> id)
@@ -175,9 +174,9 @@ class Mr02 {
       val bond = MongoHelper.asBond(bondCursor)
 
 //      print("bond(" + bond + ") = ")
-      
+
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, fitter)
+      val valuator = new SimpleBondValuator(bond, coeffs)
 
       val price = valuator.price
 
