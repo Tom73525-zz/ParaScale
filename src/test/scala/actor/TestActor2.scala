@@ -2,7 +2,7 @@ package actor
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 
-import scalaparallel.actor.remote.ukko.{Packet, Remote}
+import parascale.actor.remote.ukko.{Packet, Remote}
 
 object TestActor2 {
   def main(args: Array[String]): Unit = {

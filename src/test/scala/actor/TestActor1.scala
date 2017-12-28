@@ -4,7 +4,7 @@ import java.net.InetAddress
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 
-import scalaparallel.actor.remote.ukko.{Relay}
+import parascale.actor.remote.ukko.{Relay}
 
 object TestActor1 {
   def main(args: Array[String]): Unit = {

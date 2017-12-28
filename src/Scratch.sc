@@ -11,9 +11,10 @@ val p1 = List("1")
 "2" :: p1
 (1 to 10)
 for(i <- 1 to 3) yield "hello"+i
-import play.api.libs.json._
-val rawJson = """{"hello": "world", "age": 42}"""
-Json.parse(rawJson)
+var x = Map("AL" -> "Alabama")
+x += ("AK" -> "Alaska")
+x
+
 
 
 
