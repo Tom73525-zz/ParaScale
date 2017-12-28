@@ -26,9 +26,9 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
+import parascale.parabond.casa._
 import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.Helper
+import parascale.parabond.util.{Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 
 /** Test driver */
@@ -50,14 +50,14 @@ class Mr00 {
   
   def test {
     // Create the input of a list of Tuple2(portf id, curve coefficients).
-    val input = (1 to 4).foldLeft(List[(Int,List[Double])]()) { (list, p) =>
-      list ::: List((p,Helper.curveCoeffs))
+    val input = (1 to 4).foldLeft(List[Int]()) { (list, p) =>
+      list ::: List(p)
     }
     
     // Run the map-reduce
     val t0 = System.nanoTime
     
-    val result = MapReduce.mapreduceBasic(input, mapping, reducing)
+    val result = MapReduce.basic(input, mapping, reducing)
     
     val t1 = System.nanoTime
     
@@ -77,10 +77,9 @@ class Mr00 {
   /**
    * Mapping function
    * @param portfId Portfolio id
-   * @param fitter Curve fitting coefficients
    * @return List of (portf id, bond value))
    */
-  def mapping(portfId: Int, fitter: List[Double]): List[(Int,Double)] = {
+  def mapping(portfId: Int): List[(Int,Result)] = {
     val portfsCollecton = mongo("Portfolios")
     
     val portfsQuery = MongoDbObject("id" -> portfId)
@@ -102,7 +101,7 @@ class Mr00 {
 
 //      print("bond(" + bond + ") = ")
       
-      val valuator = new SimpleBondValuator(bond, fitter)
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
       val price = valuator.price
 
@@ -116,17 +115,19 @@ class Mr00 {
     val dt = (t1 - t0) / 1000000000.0
     
     println("value = %10.2f bonds = %d dt = %f".format(value,bondIds.size,dt))
-    
-    List((portfId, value))
+
+    List((portfId, Result(portfId,value,bondIds.size,t0,t1)))
   }
-  
+
   /**
-   * Trivial reduce function since the portfolio is already reduced.
-   * @param portfId Portfolio id
-   * @param vals Bond valuations
-   * @return List of portfolio valuation, one per portfolio
-   */
-  def reducing(portfId: Int,vals: List[Double]): List[Double] = {
+    * Reduces trivially portfolio prices.
+    * Since there's only one price per porfolio, there's nothing
+    * really to reduce!
+    * @param portfId Portfolio id
+    * @param vals Bond valuations
+    * @return List of portfolio valuation, one per portfolio
+    */
+  def reducing(portfId: Int,vals: List[Result]): List[Result] = {
     List(vals(0))
   }
 }

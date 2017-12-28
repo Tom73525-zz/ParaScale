@@ -27,9 +27,10 @@
 package parascale.parabond.test
 
 import scala.util.Random
-import parascale.parabond.casa.MongoConnection
+import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
 import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.Helper
+import parascale.parabond.util.{Helper, Result}
+import parascale.parabond.value.SimpleBondValuator
 
 /** Test driver */
 object Mr05 {
@@ -50,8 +51,8 @@ class Mr05 {
   /** Connects to the parabond DB */
   val mongo = MongoConnection("127.0.0.1")("parabond")
   
-  /** Record captured with each result */
-  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
+//  /** Record captured with each result */
+//  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
   
   /** Initialize the random number generator */
   val ran = new Random(0)   
@@ -98,9 +99,9 @@ class Mr05 {
   def priceParallel(portfId : Int) : Result = {
     val t0 = System.nanoTime
     
-    val list = List((portfId,Helper.curveCoeffs))
+    val list = List(portfId)
     
-    val result = MapReduce.mapreduceBasic(list, mapping, reducing)  
+    val result = MapReduce.basic(list, mapping, reducing)
     
     val t1 = System.nanoTime
     
@@ -146,31 +147,30 @@ class Mr05 {
       val t1 = System.nanoTime
       Result(portfId,value,bondIds.size,t0,t1)
   }
-  
+
   /**
-   * Maps a portfolio to a single price
-   * @param portId Portfolio id
-   * @param fitter Curve fitting coefficients
-   * @returns List of (portf id, bond value))
-   */
-  def mapping(portfId: Int, fitter: List[Double]): List[(Int,Result)] = {
+    * Maps a portfolio to a single price
+    * @param portfId Portfolio id
+    * @return List of (portf id, bond value))
+    */
+  def mapping(portfId: Int): List[(Int,Result)] = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
-    
+
     // Connect to the portfolio collection
     val portfsCollecton = mongo("Portfolios")
-    
+
     // Retrieve the portfolio 
     val portfsQuery = MongoDbObject("id" -> portfId)
 
     val portfsCursor = portfsCollecton.find(portfsQuery)
-    
+
     // Get the bonds in the portfolio
     val bondIds = MongoHelper.asList(portfsCursor,"instruments")
-    
+
     // Connect to the bonds collection
     val bondsCollection = mongo("Bonds")
-    
+
     val value = bondIds.foldLeft(0.0) { (sum, id) =>
       // Get the bond from the bond collection
       val bondQuery = MongoDbObject("id" -> id)
@@ -179,21 +179,21 @@ class Mr05 {
 
       val bond = MongoHelper.asBond(bondCursor)
 
-//      print("bond(" + bond + ") = ")
-      
+      //      print("bond(" + bond + ") = ")
+
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, fitter)
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
       val price = valuator.price
 
-//      println("%8.2f".format(price))
-      
+      //      println("%8.2f".format(price))
+
       // The price into the aggregate sum
       sum + price
-    }    
-    
+    }
+
     val t1 = System.nanoTime
-    
+
     List((portfId, Result(portfId,value,bondIds.size,t0,t1)))
   }
   
@@ -202,10 +202,10 @@ class Mr05 {
    * Since there's only one price per porfolio, there's nothing
    * really to reduce! 
    * @param portfId Portfolio id
-   * @param vals Bond valuations
-   * @returns List of portfolio valuation, one per portfolio
+   * @param results Bond valuations
+   * @return List of portfolio valuation, one per portfolio
    */
-  def reducing(portfId: Int,vals: List[Result]): List[Result] = {
-    List(vals(0))
+  def reducing(portfId: Int, results: List[Result]): List[Result] = {
+    List(results(0))
   }
 }

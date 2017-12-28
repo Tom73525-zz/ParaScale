@@ -26,10 +26,12 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoHelper}
-import parascale.parabond.util.Helper
+import parascale.parabond.casa.MongoHelper
+import parascale.parabond.util.{Data, Helper, Result}
+
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
+
 import scala.util.Random
 
 /** Test driver */

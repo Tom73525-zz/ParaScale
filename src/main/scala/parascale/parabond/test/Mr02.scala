@@ -28,7 +28,7 @@ package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
 import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.Helper
+import parascale.parabond.util.{Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
@@ -53,8 +53,8 @@ class Mr02 {
   /** Connects to the parabond DB */
   val mongo = MongoConnection(MongoHelper.getHost)("parabond")
   
-  /** Record captured with each result */
-  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
+//  /** Record captured with each result */
+//  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
   
   /** Initialize the random number generator */
   val ran = new Random(0)   
@@ -83,15 +83,16 @@ class Mr02 {
     val details = if(System.getProperty("details") != null) true else false
     
     // Build the portfolio list
-    val input = (1 to n).foldLeft(List[(Int,List[Double])]()) { (list, p) =>
+    val input = (1 to n).foldLeft(List[Int]()) { (list, p) =>
       val portfId = ran.nextInt(100000)+1
-      list ::: List((portfId,Helper.curveCoeffs))
+
+      list ::: List(portfId)
     }
     
     // Map-reduce the input
     val now = System.nanoTime
     
-    val resultsUnsorted = MapReduce.coarseMapReduce(input, mapping, reducing,numCores,numCores)
+    val resultsUnsorted = MapReduce.coarse(input, mapping, reducing,numCores, numCores)
 //    val resultsUnsorted = MapReduce.mapreduceBasic(input, mapping, reducing)
   
     val t1 = System.nanoTime
@@ -147,7 +148,7 @@ class Mr02 {
    * @param portfId Portfolio id
    * @return List of (portf id, bond value result))
    */
-  def mapping(portfId: Int, coeffs: List[Double]): List[(Int,Result)] = {
+  def mapping(portfId: Int): List[(Int,Result)] = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -176,7 +177,7 @@ class Mr02 {
 //      print("bond(" + bond + ") = ")
 
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, coeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
       val price = valuator.price
 
@@ -197,7 +198,7 @@ class Mr02 {
    * really to reduce! 
    * @param portfId Portfolio id
    * @param vals Bond valuations
-   * @returns List of portfolio valuation, one per portfolio
+   * @return List of portfolio valuation, one per portfolio
    */
   def reducing(portfId: Int,vals: List[Result]): List[Result] = {
     List(vals(0))

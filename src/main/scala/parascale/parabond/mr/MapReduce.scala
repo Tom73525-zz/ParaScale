@@ -26,6 +26,9 @@
  */
 package parascale.parabond.mr
 
+import parascale.parabond.entry.SimpleBond
+import parascale.parabond.util.Result
+
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -35,28 +38,40 @@ import scala.concurrent.duration._
   * on a portfolio of bonds.
   */
 object MapReduce {
-  def mapreduceBasic[K, V, K2, V2](
-                                    input: List[(K, V)],
-                                    mapping: (K, V) => List[(K2, V2)],
-                                    reducing: (K2, List[V2]) => List[V2]): Map[K2, List[V2]] = {
-    case class Intermediate(list: List[(K2, V2)])
+  /**
+    *
+    * @param input Portfolio ids
+    * @param mapping Mapping function
+    * @param reducing Reducing function
+    * @return Mapping from portfolio id to result list (only index zero has value)
+    */
+  def basic (
+                                    input: List[Int],
+                                    mapping: Int => List[(Int, Result)],
+                                    reducing: (Int, List[Result]) => List[Result]): Map[Int, List[Result]] = {
+    case class Intermediate(list: List[(Int, Result)])
 
-    val futures = for ((key, value) <- input) yield Future {
-      Intermediate(mapping(key, value))
+    // Value the portfolios in parallel
+    val futures = for (portfid <- input) yield Future {
+      Intermediate(mapping(portfid))
     }
 
-    val intermediates = futures.foldLeft(List[(K2, V2)]()) { (list, future) =>
+    // Wait for the portfolios to finish and gather the intermediate results of (portf id, value) pairs
+    // NOTE: mapping may already have reduced the bond prices to a single value.
+    val intermediates = futures.foldLeft(List[(Int, Result)]()) { (list, future) =>
       val result = Await.result(future, 100 seconds)
 
       list ++ result.list
     }
 
-    var dict = Map[K2, List[V2]]() withDefault (k => List())
+    // Copy intermediate results to a dictionary: portf -> intermediate results
+    var dict = Map[Int, List[Result]]() withDefault (k => List())
 
     for ((key, value) <- intermediates)
       dict += (key -> (value :: dict(key)))
 
-    var result = Map[K2, List[V2]]()
+    // Reduce the prices to a single price: portfid -> result
+    var result = Map[Int, List[Result]]()
 
     for ((key, value) <- dict)
       result += (key -> reducing(key, value))
@@ -65,36 +80,33 @@ object MapReduce {
   }
 
   /**
-    *
-    * @param input List of (portfId,
-    * @param mapping
-    * @param reducing
-    * @param numMappers
-    * @param numReducers
-    * @tparam K
-    * @tparam V
-    * @tparam K2
-    * @tparam V2
+    * Values the portfolios in groups, ie, a single future values multiple portfs instead of a single portf.
+    * @param input List of portfolio ids
+    * @param mapping Mapping function
+    * @param reducing Reducing function
+    * @param numMappers Number of mappers
+    * @param numReducers Number of reducers
     * @return Map from portfolio id to a list of its values (actually only the first value)
     */
-  def coarseMapReduce[K, V, K2, V2](
-                                     input: List[(K, V)],
-                                     mapping: (K, V) => List[(K2, V2)],
-                                     reducing: (K2, List[V2]) => List[V2],
+  def coarse (
+                                     input: List[Int],
+                                     mapping: Int => List[(Int, Result)],
+                                     reducing: (Int, List[Result]) => List[Result],
                                      numMappers: Int,
-                                     numReducers: Int): Map[K2, List[V2]] = {
+                                     numReducers: Int): Map[Int, List[Result]] = {
 
-    case class Intermediate(list: List[(K2, V2)])
+    case class Intermediate(list: List[(Int, Result)])
+    case class Reduced(portfid: Int, values: List[Result])
 
-    case class Reduced(key: K2, values: List[V2])
-
+    // Value a group of portfolios within a single future in parallel
     val mapfutures: Iterator[Future[List[Intermediate]]] =
       for (group <- input.grouped(input.length / numMappers)) yield Future {
-        for ((key, value) <- group) yield
-          Intermediate(mapping(key, value))
+        for (portfid <- group) yield
+          Intermediate(mapping(portfid))
       }
 
-    val intermediates = mapfutures.foldLeft(List[(K2, V2)]()) { (list, future) =>
+    // Wait for the futures to finish
+    val intermediates = mapfutures.foldLeft(List[(Int, Result)]()) { (list, future) =>
       val result = Await.result(future, 100 seconds)
 
       result.foldLeft(list) { (list, intermediate) =>
@@ -102,88 +114,66 @@ object MapReduce {
       }
     }
 
-    var dict = Map[K2, List[V2]]() withDefault (k => List())
+    // Copy the result to a dictionary: portfid -> intermediate results
+    var dict = Map[Int, List[Result]]() withDefault (k => List())
 
     for ((key, value) <- intermediates)
       dict += (key -> (value :: dict(key)))
 
+    // Reduce the results in parallel
     val reducedfutures: Iterator[Future[Iterable[Reduced]]] =
       for (group <- dict.grouped(dict.size / numReducers)) yield Future {
-        for((key, values) <- group) yield
-          Reduced(key, reducing(key, values))
+        for((portfid, results) <- group) yield
+          Reduced(portfid, reducing(portfid, results))
       }
 
-    val reduceds = reducedfutures.foldLeft(Map[K2,List[V2]]()) { (map, future) =>
+    // Wait for the reduction to finish and build the map: portfid -> results
+    val reduceds = reducedfutures.foldLeft(Map[Int,List[Result]]()) { (map, future) =>
       val result = Await.result(future, 100 seconds)
 
-      result.foldLeft(Map[K2, List[V2]]()) { (map, rsult) =>
-        map + (rsult.key -> rsult.values)
+      result.foldLeft(Map[Int, List[Result]]()) { (map, rsult) =>
+        map + (rsult.portfid -> rsult.values)
       }
     }
 
     reduceds
   }
 
-//  /**
-//    *
-//    * @param input List of portfolio ids
-//    * @param mapping Maps a portfolio id to a list of (portfolio, result) pairs
-//    * @param reducing Reduces a (portolio id, list of bond values) pair to portfolio value as a single result
-//    * @param numMappers Number of mappers to use
-//    * @param numReducers Number of reduces to use
-//    * @tparam K Portfolio identifier
-//    * @tparam V Result
-//    * @return Map from portfolio id to portfolio value (just one in the list)
-//    */
-//  def coarseMapReduce2[K, V](
-//                                     input: List[K],
-//                                     mapping: K => List[(K, V)],
-//                                     reducing: (K, List[V]) => List[V],
-//                                     numMappers: Int,
-//                                     numReducers: Int): Map[K, List[V]] = {
-//
-//    case class Intermediate(list: List[(K, V)])
-//
-//    case class Reduced(key: K, values: List[V])
-//
-//    val mapfutures: Iterator[Future[List[Intermediate]]] =
-//      for (group <- input.grouped(input.length / numMappers)) yield Future {
-//        for ((key, value) <- group) yield
-//          Intermediate(mapping(key, value))
-//      }
-//
-//    val intermediates = mapfutures.foldLeft(List[(K, V)]()) { (list, future) =>
-//      val result = Await.result(future, 100 seconds)
-//
-//      result.foldLeft(list) { (list, intermediate) =>
-//        list ++ intermediate.list
-//      }
-//    }
-//
-//    var dict = Map[K, List[V]]() withDefault (k => List())
-//
-//    for ((key, value) <- intermediates)
-//      dict += (key -> (value :: dict(key)))
-//
-//    val reducedfutures: Iterator[Future[Iterable[Reduced]]] =
-//      for (group <- dict.grouped(dict.size / numReducers)) yield Future {
-//        for((key, values) <- group) yield
-//          Reduced(key, reducing(key, values))
-//      }
-//
-//    val reduceds = reducedfutures.foldLeft(Map[K,List[V]]()) { (map, future) =>
-//      val result = Await.result(future, 100 seconds)
-//
-//      for((k, v) <- result) {
-//        map(k) = v
-//      }
-//
-//      map
-//    }
-//
-//    reduceds
-//  }
+  /**
+    * Values the portfolios given all the portfolios and bonds have been loaded into memory.
+    * @param input List of pairs of portfolio ids and bonds (not bond ids)
+    * @param mapping Mapping function
+    * @param reducing Reducing function
+    * @return Mapping from portfid -> value
+    */
+  def memorybound (input: List[(Int, List[SimpleBond])],
+                                  mapping: (Int,List[SimpleBond]) => List[(Int,Result)],
+                                  reducing: (Int,List[Result]) => List[Result]): Map[Int, List[Result]] = {
+    case class Intermediate(list: List[(Int, Result)])
+    case class Reduced(key: Int, values: List[Result])
 
+    val futures = for((portf, bonds) <- input) yield Future {
+        Intermediate(mapping(portf,bonds))
+    }
+
+    val intermediates = futures.foldLeft(List[(Int, Result)]()) { (list, future) =>
+      val result = Await.result(future, 100 seconds)
+
+      list ++ result.list
+    }
+
+    var dict = Map[Int, List[Result]]() withDefault (k => List())
+
+    for ((portfid, results) <- intermediates)
+      dict += (portfid -> (results :: dict(portfid)))
+
+    var result = Map[Int, List[Result]]()
+
+    for ((key, value) <- dict)
+      result += (key -> reducing(key, value))
+
+    result
+  }
 }
 
 

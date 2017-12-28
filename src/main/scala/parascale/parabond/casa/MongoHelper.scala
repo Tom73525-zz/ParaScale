@@ -31,10 +31,10 @@ import org.bson.Document
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
-import parascale.parabond.entry.SimpleBond
 import parascale.parabond.util.{Constant, Data}
-
+import parascale.parabond.entry.SimpleBond
 import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * This object implements monngo-specific helper functions.

@@ -28,7 +28,7 @@ package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
 import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.Helper
+import parascale.parabond.util.{Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
@@ -48,12 +48,11 @@ object Mr01 {
 class Mr01 {
   /** Number of bond portfolios to analyze */
   val PORTF_NUM = 100
-        
+
   /** Connects to the parabond DB */
   val mongo = MongoConnection(MongoHelper.getHost)("parabond")
   
-  /** Record captured with each result */
-  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
+
   
   /** Initialize the random number generator */
   val ran = new Random(0)   
@@ -80,15 +79,15 @@ class Mr01 {
     val details = if(System.getProperty("details") != null) true else false
     
     // Build the portfolio list
-    val input = (1 to n).foldLeft(List[(Int,List[Double])]()) { (list, p) =>
+    val input = (1 to n).foldLeft(List[Int]()) { (list, p) =>
       val r = ran.nextInt(100000)+1
-      list ::: List((r,Helper.curveCoeffs))
+      list ::: List(r)
     }
     
     // Map-reduce the input
     val now = System.nanoTime
     
-    val resultsUnsorted = MapReduce.mapreduceBasic(input, mapping, reducing)
+    val resultsUnsorted = MapReduce.basic(input, mapping, reducing)
     
     val t1 = System.nanoTime
     
@@ -143,10 +142,9 @@ class Mr01 {
   /**
    * Maps a portfolio to a single price
    * @param portfId Portfolio id
-   * @param fitter Curve fitting coefficients
    * @return List of (portf id, bond value))
    */
-  def mapping(portfId: Int, fitter: List[Double]): List[(Int,Result)] = {
+  def mapping(portfId: Int): List[(Int,Result)] = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
     
@@ -175,7 +173,7 @@ class Mr01 {
 //      print("bond(" + bond + ") = ")
       
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, fitter)
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
       val price = valuator.price
 

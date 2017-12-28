@@ -154,12 +154,14 @@ class Par02 {
     
     list
   }  
-  
-  
+
     /**
    * Parallel load the portfolios and bonds into memory (actor-based).
    */
   def loadPortfsPar2(n : Int) : ListBuffer[Data] = {
+    import scala.concurrent.{Await, Future}
+    import scala.concurrent.ExecutionContext.Implicits.global
+
     val futures = for(_ <- 1 to n) yield Future {
       // Select a portfolio
       val lottery = ran.nextInt(100000) + 1
