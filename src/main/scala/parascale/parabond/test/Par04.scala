@@ -88,7 +88,7 @@ class Par04 {
     }
     
     // Build the portfolio list
-    val now = System.nanoTime  
+    val t0 = System.nanoTime
     val results = coarseInputs.par.map(priced) 
     val t1 = System.nanoTime
     
@@ -102,7 +102,7 @@ class Par04 {
       } + sum
     } / 1000000000.0
     
-    val dtN = (t1 - now) / 1000000000.0
+    val dtN = (t1 - t0) / 1000000000.0
     
     val speedup = dt1 / dtN
 

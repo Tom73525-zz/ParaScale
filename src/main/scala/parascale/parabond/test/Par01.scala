@@ -89,7 +89,7 @@ class Par01 {
       println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
       
       outputs.foreach { output =>
-        val id = output.id
+        val id = output.portfId
 
         val dt = (output.result.t1 - output.result.t0) / 1000000000.0
 
@@ -145,12 +145,12 @@ class Par01 {
       sum + price
     }    
     
-    MongoHelper.updatePrice(portf.id,value)     
+    MongoHelper.updatePrice(portf.portfId,value)
     
     val t1 = System.nanoTime
     
     // Return the result for this portfolio
-    Data(portf.id,null,Result(portf.id,value,portf.bonds.size,t0,t1))
+    Data(portf.portfId,null,Result(portf.portfId,value,portf.bonds.size,t0,t1))
   }  
   
   /**
@@ -196,9 +196,9 @@ class Par01 {
         
         // If b is a Data instance, fetch the bonds and append them to the data list
         case data : Data =>
-          val bonds = MongoHelper.fetchBonds(data.id) 
+          val bonds = MongoHelper.fetchBonds(data.portfId)
           
-          List(Data(data.id,bonds.list,null)) ++ opa
+          List(Data(data.portfId,bonds.list,null)) ++ opa
       }         
 
     }

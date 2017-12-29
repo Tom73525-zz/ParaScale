@@ -90,7 +90,7 @@ class Par07 {
     val t3 = System.nanoTime     
 
     // Build the portfolio list
-    val now = System.nanoTime  
+    val t0 = System.nanoTime
     val results = chunks.par.map(price) 
     val t1 = System.nanoTime
     
@@ -104,7 +104,7 @@ class Par07 {
       } + sum
     } / 1000000000.0
     
-    val dtN = (t1 - now) / 1000000000.0
+    val dtN = (t1 - t0) / 1000000000.0
     
     val speedup = dt1 / dtN
 

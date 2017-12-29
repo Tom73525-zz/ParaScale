@@ -88,7 +88,7 @@ class NPortfolio03 {
     	println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
     	
       outputs.foreach { output =>
-        val id = output.id
+        val id = output.portfId
 
         val dt = (output.result.t1 - output.result.t0) / 1000000000.0
 
@@ -145,12 +145,12 @@ class NPortfolio03 {
     }    
     
     // Update the portfolio price
-    MongoHelper.updatePrice(input.id,value)    
+    MongoHelper.updatePrice(input.portfId,value)
     
     val t1 = System.nanoTime
     
     // Return the result for this portfolio
-    Data(input.id,null,Result(input.id,value,input.bonds.size,t0,t1))
+    Data(input.portfId,null,Result(input.portfId,value,input.bonds.size,t0,t1))
   }  
   
   /**

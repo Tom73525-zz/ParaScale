@@ -8,7 +8,6 @@ object SimpleActorExample extends App {
     def receive = {
       case s: String => println("String: "+s)
       case i: Int => println("Number: "+i)
-
     }
 
     def foo = println("normal method")

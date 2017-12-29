@@ -96,7 +96,7 @@ class Mr03 {
 
     if (details)
       results.foreach { result =>
-        val id = result.id
+        val id = result.portfId
 
         val dt = (result.t1 - result.t0) / 1000000000.0
 

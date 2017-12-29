@@ -26,10 +26,11 @@
  */
 package parascale.parabond.casa
 
+import java.util.logging.{Level, Logger}
+
 import com.mongodb.client.FindIterable
 import org.bson.Document
 
-import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import parascale.parabond.util.{Constant, Data}
 import parascale.parabond.entry.SimpleBond
@@ -43,12 +44,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object MongoHelper {
   /** Sets the mongo host */
   val host: String = getHost
-  
+
   /** Connects to the parabond DB */
   val mongo = parascale.parabond.casa.MongoConnection(host)("parabond")
   
   val portfCollection = mongo("Portfolios")
-  
   val bondCollection = mongo("Bonds")
   
   /** Initialize the random number generator */

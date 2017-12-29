@@ -91,7 +91,7 @@ class Mr05 {
       
       val dt1 = (results(1).t1 - results(1).t0) / 1000000000.0      
         
-      println("%6d %10.2f %10.2f %6.4f %6.4f".format(results(0).id, results(0).price, results(1).price, dt0, dt1))
+      println("%6d %10.2f %10.2f %6.4f %6.4f".format(results(0).portfId, results(0).price, results(1).price, dt0, dt1))
       
     }
   }

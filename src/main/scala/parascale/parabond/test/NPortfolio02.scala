@@ -86,7 +86,7 @@ class NPortfolio02 {
     	println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
     	
       outputs.foreach { output =>
-        val id = output.id
+        val id = output.portfId
 
         val dt = (output.result.t1 - output.result.t0) / 1000000000.0
 
@@ -131,7 +131,7 @@ class NPortfolio02 {
     val t0 = System.nanoTime
     
     // Retrieve the portfolio 
-    val portfId = input.id
+    val portfId = input.portfId
     
     val portfsQuery = MongoDbObject("id" -> portfId)
 

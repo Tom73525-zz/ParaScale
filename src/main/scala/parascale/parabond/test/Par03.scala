@@ -79,15 +79,15 @@ class Par03 {
     val inputs = for(i <- 0 until n) yield Data(ran.nextInt(100000)+1,null, null)   
     
     // Build the portfolio list
-    val now = System.nanoTime  
-    val outputs = inputs.par.map(priced) 
+    val t0 = System.nanoTime
+    val results = inputs.par.map(priced)
     val t1 = System.nanoTime
     
     // Generate the detailed output report
     if(details) {
       println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
       
-      outputs.foreach { output =>
+      results.foreach { output =>
         val id = output.result.id
 
         val dt = (output.result.t1 - output.result.t0) / 1000000000.0
@@ -96,16 +96,16 @@ class Par03 {
 
         val price = output.result.price
 
-        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - now, output.result.t0 - now))
+        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - t0, output.result.t0 - t0))
       }
     }
     
-    val dt1 = outputs.foldLeft(0.0) { (sum,result) =>      
+    val dt1 = results.foldLeft(0.0) { (sum,result) =>
       sum + (result.result.t1 - result.result.t0)
       
     } / 1000000000.0
     
-    val dtN = (t1 - now) / 1000000000.0
+    val dtN = (t1 - t0) / 1000000000.0
     
     val speedup = dt1 / dtN
     

@@ -26,11 +26,10 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoDbObject, MongoHelper}
+import parascale.parabond.casa.{MongoHelper}
 import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Await, Future}
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
 
@@ -58,9 +57,8 @@ class Par02 {
   val details = false
   
   /** Record captured with each result */
-  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
-  
-  case class Data(portfId: Int, bonds:List[SimpleBond], result: Result)
+//  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
+//  case class Data(portfId: Int, bonds:List[SimpleBond], result: Result)
   
   def test {
     // Set the number of portfolios to analyze
@@ -79,7 +77,7 @@ class Par02 {
     // Build the portfolio list
     val now = System.nanoTime  
     val results = input.par.map(priced) 
-    input.par.reduce { (a: Data, b:Data) =>
+    results.par.reduce { (a: Data, b:Data) =>
       Data(0,null,Result(0,a.result.price + b.result.price,0,0,0))
     }
     val t1 = System.nanoTime
@@ -124,7 +122,7 @@ class Par02 {
       new SimpleBond(0,0,0,0,a.maturity+b.maturity)
     }  
     
-    MongoHelper.updatePrice(input.portfId,bondsValue.maturity)  
+    MongoHelper.updatePrice(input.portfId,bondsValue.maturity)
     
     val t1 = System.nanoTime
     
