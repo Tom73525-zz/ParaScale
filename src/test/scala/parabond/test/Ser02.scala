@@ -26,26 +26,24 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.MongoHelper
+import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Data, Helper, Result}
-
-import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
 
 /** Test driver */
-object NPortfolio103 {
+object Ser02 {
   def main(args: Array[String]): Unit = {
-    new NPortfolio00 test
+    new Ser02 test
   }
 }
 
 /**
- * This class implements the memory-bound serial algorithm.
+ * This class implements the composite serial algorithm.
  * @author Ron Coleman, Ph.D.
  */
-class NPortfolio03 {
+class Ser02 {
   /** Number of bond portfolios to analyze */
   val PORTF_NUM = 100
   
@@ -71,19 +69,19 @@ class NPortfolio03 {
     
     val details = if(System.getProperty("details") != null) true else false
     
-    // Load all the bonds into into memory
-    // Note: the input is a list of Data instances, each element of which contains a list
-    // of bonds
-    val t2 = System.nanoTime
-    val inputs = loadPortfsFoldLeft(n)
-    val t3 = System.nanoTime   
+    // Build the portfolio list    
+    val inputs = for(i <- 0 until n) yield Data(ran.nextInt(100000)+1,null,null)    
     
-    // Process the data
+    val list = inputs.toList
+   
+    // Parallel map the input
     val now = System.nanoTime  
-    val outputs = inputs.map(priced)     
+    
+    val outputs = inputs.map(price) 
+    
     val t1 = System.nanoTime
     
-    // Generate the output report
+    // Generate the detailed output report
     if(details) {
     	println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
     	
@@ -100,41 +98,57 @@ class NPortfolio03 {
       }
     }
     
-    val dt1 = outputs.foldLeft(0.0) { (sum,result) =>      
-      sum + (result.result.t1 - result.result.t0)
-      
+    // Compute the "inner" time
+    val dt1 = outputs.foldLeft(0.0) { (sum, output) =>
+      sum + (output.result.t1 - output.result.t0)
+
     } / 1000000000.0
     
+    // Compute the "outer" time
     val dtN = (t1 - now) / 1000000000.0
-    
-    val speedup = dt1 / dtN
-    
-    val numCores = Runtime.getRuntime().availableProcessors()
-    
-    val e = speedup / numCores
 
-    os.print("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
-        format(dt1,dtN,numCores,speedup,e))     
+    val speedup = dt1 / dtN
+
+    val numCores = Runtime.getRuntime().availableProcessors()
+
+    val e = speedup / numCores
     
-    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0))   
+    os.println("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
+        format(dt1,dtN,numCores,speedup,e))  
     
     os.flush
     
     os.close
     
-    println(me+" DONE! %d %7.4f".format(n,dtN))        
+    println(me+" DONE! %d %7.4f".format(n,dtN))      
   }
-  
+   
   /**
-   * Prices a portfolio assuming all the bonds for a portfolio are already loaded
-   * into memory.
+   * Prices a portfolio using the "basic" algorithm.
    */
-  def priced(input: Data): Data = {
-    
+  def price(input: Data): Data = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
     
-    val value = input.bonds.foldLeft(0.0) { (sum, bond) =>      
+    // Retrieve the portfolio 
+    val portfId = input.portfId
+    
+    val portfsQuery = MongoDbObject("id" -> portfId)
+
+    val portfsCursor = MongoHelper.portfCollection.find(portfsQuery)
+    
+    // Get the bonds ids in the portfolio
+    val bondIds = MongoHelper.asList(portfsCursor,"instruments")
+    
+    // Price each bond and sum all the prices
+    val value = bondIds.foldLeft(0.0) { (sum, id) =>
+      // Get the bond from the bond collection
+      val bondQuery = MongoDbObject("id" -> id)
+
+      val bondCursor = MongoHelper.bondCollection.find(bondQuery)
+
+      val bond = MongoHelper.asBond(bondCursor)
+      
       // Price the bond
       val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
@@ -142,31 +156,13 @@ class NPortfolio03 {
       
       // The price into the aggregate sum
       sum + price
-    }    
+    } 
     
-    // Update the portfolio price
-    MongoHelper.updatePrice(input.portfId,value)
-    
+    // Update the portfolio price    
+    MongoHelper.updatePrice(portfId,value)  
+  
     val t1 = System.nanoTime
     
-    // Return the result for this portfolio
-    Data(input.portfId,null,Result(input.portfId,value,input.bonds.size,t0,t1))
-  }  
-  
-  /**
-   * Parallel load the portfolios with embedded bonds.
-   * @param n Number of portfolios to load
-   */
-  def loadPortfsFoldLeft(n: Int): List[Data] = {   
-    val lotteries = for(i <- 0 until n) yield ran.nextInt(100000)+1 
-    
-    val list = lotteries.foldLeft (List[Data]())
-    { (portfIdBonds,portfId) =>
-      val intermediate = MongoHelper.fetchBonds(portfId)
-      
-      Data(portfId,intermediate.list,null) :: portfIdBonds
-    }
-    
-    list
-  }  
+    Data(portfId,null,Result(portfId,value,bondIds.size,t0,t1))
+  }
 }

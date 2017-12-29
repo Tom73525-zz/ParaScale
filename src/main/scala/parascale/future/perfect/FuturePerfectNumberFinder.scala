@@ -25,7 +25,7 @@ package parascale.future.perfect
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object FasterPerfectNumberFinder extends App {
+object FuturePerfectNumberFinder extends App {
   (0 until candidates.length).foreach { index =>
     val num = candidates(index)
     println(num + " is perfect? "+ ask(isPerfectConcurrent,num))
@@ -59,16 +59,7 @@ object FasterPerfectNumberFinder extends App {
     (2 * candidate) == total
   }
 
-  /**
-    * Computes the sum of factors in a range using a range which may fail for large numbers.
-    * @param lower Lower part of range
-    * @param upper Upper part of range
-    * @param number Number
-    * @return Sum of factors
-    */
-  def sumOfFactorsInRange(lower: Long, upper: Long, number: Long): Long = {
-    (lower to upper).foldLeft(0L) { (sum, i) => if (number % i == 0) sum + i else sum }
-  }
+
 
   /**
     * Computes the sum of factors in a range using a loop which is robust for large numbers.

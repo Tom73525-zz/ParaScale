@@ -181,8 +181,10 @@ object MongoHelper {
   }
   
   /**
-   * Fetches the bonds from the database.
-   */
+    * Fetches the bonds from the database.
+    * @param portfId Portfolio id
+    * @return Container of portfolio id and bonds
+    */
   def fetchBonds(portfId: Int): Intermediate = {
       // Retrieve the portfolio 
       val portfsQuery = MongoDbObject("id" -> portfId)

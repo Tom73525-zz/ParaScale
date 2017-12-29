@@ -26,25 +26,31 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoDbObject, MongoHelper}
+import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
 import parascale.parabond.util.Helper
+
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
 
+import scala.util.Random
+
 /** Test driver */
-object NPortfolio100 {
+object Ser01 {
   def main(args: Array[String]): Unit = {
-    new NPortfolio00 test
+    new Ser01 test
   }
 }
 
 /**
- * This class implements the composite serial algorithm.
+ * This class implements the memory-bound serial algorithm.
  * @author Ron Coleman, Ph.D.
  */
-class NPortfolio00 {
+class Ser01 {
   /** Number of bond portfolios to analyze */
   val PORTF_NUM = 100
+
+  /** Connects to the parabond DB */
+  val mongo = MongoConnection(MongoHelper.getHost)("parabond")
   
   /** Initialize the random number generator */
   val ran = new Random(0)  
@@ -66,41 +72,26 @@ class NPortfolio00 {
     
     val fos = new java.io.FileOutputStream(outFile,true)
     val os = new java.io.PrintStream(fos)
-    
-    os.print(me+" "+ "N: "+n+" ")    
+        
+    os.print(me+" "+ "N: "+n+" ")  
     
     val details = if(System.getProperty("details") != null) true else false
     
-    val input = (1 to n).foldLeft(List[(Int,List[Double])]()) { (list, p) =>
-      val r = ran.nextInt(100000)+1
-      list ::: List((r,Helper.curveCoeffs))
-    }    
+    val t2 = System.nanoTime
+    val input = MongoHelper.loadPortfs(n)
+    val t3 = System.nanoTime 
     
-    val now = System.nanoTime
+    val t0 = System.nanoTime
     
     val results = input.foldLeft(List[Result]()) { (sum, p) =>  
       // Value each bond in the portfolio
       val t0 = System.nanoTime
 
       // Retrieve the portfolio 
-      val (portfId, coeffs) = p
-      
-      val portfsQuery = MongoDbObject("id" -> portfId)
+      val (portfId, bonds) = p
 
-      val portfsCursor = MongoHelper.portfCollection.find(portfsQuery)
-
-      // Get the bonds in the portfolio
-      val bondIds = MongoHelper.asList(portfsCursor, "instruments")
-
-      val value = bondIds.foldLeft(0.0) { (sum, id) =>
+      val value = bonds.foldLeft(0.0) { (sum, bond) =>
         
-        // Get the bond from the bond collection
-        val bondQuery = MongoDbObject("id" -> id)
-
-        val bondCursor = MongoHelper.bondCollection.find(bondQuery)
-
-        val bond = MongoHelper.asBond(bondCursor)
-
         // Price the bond
         val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
@@ -114,7 +105,7 @@ class NPortfolio00 {
       
       val t1 = System.nanoTime
       
-      Result(portfId,value,bondIds.size,t0,t1) :: sum     
+      Result(portfId,value,bonds.size,t0,t1) :: sum     
     }
     
     val t1 = System.nanoTime
@@ -132,7 +123,7 @@ class NPortfolio00 {
 
         val price = result.price
 
-        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - now, result.t0 - now))
+        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - t0, result.t0 - t0))
       }
     }
     
@@ -142,7 +133,7 @@ class NPortfolio00 {
     } / 1000000000.0
     
     
-    val dtN = (t1 - now) / 1000000000.0
+    val dtN = (t1 - t0) / 1000000000.0
     
     val speedup = dt1 / dtN
     
@@ -150,13 +141,16 @@ class NPortfolio00 {
     
     val e = 1.0
     
-    os.println("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
-        format(dt1,dtN,numCores,speedup,e))  
+    os.print("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
+        format(dt1,dtN,numCores,speedup,e))     
+    
+    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0))   
     
     os.flush
     
     os.close
     
-    println(me+" DONE! %d %7.4f".format(n,dtN))    
+    println(me+" DONE! %d %7.4f".format(n,dtN))     
   }
+  
 }

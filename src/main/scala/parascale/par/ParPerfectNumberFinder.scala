@@ -20,51 +20,43 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.par
 
-import parascale.thread.actor.Constant._
-import org.apache.log4j.Logger
-import scala.util.Random
+import parascale.future.perfect.{ask, sumOfFactorsInRange_, candidates}
 
-object Dispatcher extends App {
-  val LOG =  Logger.getLogger(getClass)
-
-  val config = Config()
-
-    val consumers = (0 until config.numWorkers).foldLeft(List[Worker]()) { (list, n) =>
-      val consumer = new Worker(n)
-
-      consumer.start
-
-      consumer :: list
-    }
-
-    val ran = new Random
-
-    for(taskno <- 0 until Constant.NUM_TASKS) {
-      val task = produce(taskno)
-
-      val index = ran.nextInt(consumers.size)
-
-      consumers(index).send(task)
-    }
-
-    consumers.foreach { consumer =>
-      consumer.send(DONE)
-      consumer.join
+object ParPerfectNumberFinder extends App {
+  (0 until candidates.length).foreach { index =>
+    val num = candidates(index)
+    println(num + " is perfect? "+ ask(isPerfect,num))
   }
 
   /**
-    * Produces a task.
-    * @param num Task number
-    * @return Task
+    * Returns true if the candidate is perfect.
+    * @param candidate Candidate number
+    * @return True if perfect, false otherwise
     */
-  def produce(num: Int): Task = {
-    Thread.sleep(MAX_PRODUCING)
+  def isPerfect(candidate: Long): Boolean = {
+    val RANGE = 1000000L
 
-    LOG.debug("producing task "+num)
-    Task(num, MAX_PRODUCING)
+    val numberOfPartitions = (candidate.toDouble / RANGE).ceil.toInt
+
+    val ranges = for (i <- 0L until numberOfPartitions) yield {
+      val lower: Long = i * RANGE + 1
+
+      val upper: Long = candidate min (i + 1) * RANGE
+
+      (lower, upper)
+    }
+
+    val sums = ranges.par.map { lowerUpper =>
+      val (lower, upper) = lowerUpper
+      sumOfFactorsInRange_(lower, upper, candidate)
+    }
+
+    val total = sums.reduce { (a, b) =>
+      a + b
+    }
+
+    2 * candidate == total
   }
 }
-
-

@@ -23,8 +23,19 @@
 package parascale.future
 
 package object perfect {
-  /** Candidate perfect numbers */
-  val candidates: List[Long] = List(6, 28, 496, 8128, 33550336, 33550336+1, 8589869056L, 137438691328L, 2305843008139952128L)
+  /** Candidate perfect numbers, see https://en.wikipedia.org/wiki/List_of_perfect_numbers */
+  val candidates: List[Long] =
+    List(
+      6,
+      28,
+      496,
+      8128,
+      33550336,
+      33550336+1,
+      8589869056L+1,
+      8589869056L,
+      137438691328L,
+      2305843008139952128L)
 
   /**
     * Convenience method to measure the runtime of a method.
@@ -42,5 +53,64 @@ package object perfect {
     val answer = if(result) "YES" else "NO"
 
     answer + " dt = "+(t1-t0)/1000000000.0 + "s"
+  }
+
+  /**
+    * Sums the factors of a number using a range which may explode for large numbers.
+    * @param number Number
+    * @return sum of factors
+    */
+  def sumOfFactors(number: Long) = {
+    (1L to number.toLong).foldLeft(0L) { (sum, i) => if (number % i == 0L) sum + i else sum }
+  }
+
+  /**
+    * Sums the factors using a loop which is more robust for large numbers.
+    * @param number Number
+    * @return sum of factors
+    */
+  def sumOfFactors_(number: Long) = {
+    var i = 1L
+    var sum = 0L
+    while(i <= number.toLong) {
+      if(number % i == 0)
+        sum += i
+      i += 1
+    }
+    sum
+  }
+
+  /**
+    * Computes the sum of factors in a range using a range which may fail for large numbers.
+    * @param lower Lower part of range
+    * @param upper Upper part of range
+    * @param number Number
+    * @return Sum of factors
+    */
+  def sumOfFactorsInRange(lower: Long, upper: Long, number: Long): Long = {
+    (lower to upper).foldLeft(0L) { (sum, i) => if (number % i == 0) sum + i else sum }
+  }
+
+  /**
+    * Computes the sum of factors in a range using a loop which is robust for large numbers.
+    *
+    * @param lower  Lower part of range
+    * @param upper  Upper part of range
+    * @param number Number
+    * @return Sum of factors
+    */
+  def sumOfFactorsInRange_(lower: Long, upper: Long, number: Long): Long = {
+    var index: Long = lower
+
+    var sum = 0L
+
+    while (index <= upper) {
+      if (number % index == 0L)
+        sum += index
+
+      index += 1L
+    }
+
+    sum
   }
 }

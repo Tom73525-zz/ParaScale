@@ -27,15 +27,14 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Data, Helper, Result}
+import parascale.parabond.util.Helper
+import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
 
-import scala.util.Random
-
 /** Test driver */
-object NPortfolio102 {
+object Ser00 {
   def main(args: Array[String]): Unit = {
-    new NPortfolio02 test
+    new Ser00 test
   }
 }
 
@@ -43,17 +42,20 @@ object NPortfolio102 {
  * This class implements the composite serial algorithm.
  * @author Ron Coleman, Ph.D.
  */
-class NPortfolio02 {
+class Ser00 {
   /** Number of bond portfolios to analyze */
   val PORTF_NUM = 100
   
   /** Initialize the random number generator */
-  val ran = new Random(0)   
+  val ran = new Random(0)  
   
   /** Write a detailed report */
-  val details = false
+  val details = true
   
-  def test {
+  /** Record captured with each result */
+  case class Result(id: Int, price: Double, bondCount: Int, t0: Long, t1: Long)
+
+  def test {  
     // Set the number of portfolios to analyze
     val arg = System.getProperty("n")
     
@@ -65,53 +67,88 @@ class NPortfolio02 {
     val fos = new java.io.FileOutputStream(outFile,true)
     val os = new java.io.PrintStream(fos)
     
-    os.print(me+" "+ "N: "+n+" ")
+    os.print(me+" "+ "N: "+n+" ")    
     
     val details = if(System.getProperty("details") != null) true else false
     
-    // Build the portfolio list    
-    val inputs = for(i <- 0 until n) yield Data(ran.nextInt(100000)+1,null,null)    
+    val input = (1 to n).foldLeft(List[(Int,List[Double])]()) { (list, p) =>
+      val r = ran.nextInt(100000)+1
+      list ::: List((r,Helper.curveCoeffs))
+    }    
     
-    val list = inputs.toList
-   
-    // Parallel map the input
-    val now = System.nanoTime  
+    val now = System.nanoTime
     
-    val outputs = inputs.map(price) 
+    val results = input.foldLeft(List[Result]()) { (sum, p) =>  
+      // Value each bond in the portfolio
+      val t0 = System.nanoTime
+
+      // Retrieve the portfolio 
+      val (portfId, coeffs) = p
+      
+      val portfsQuery = MongoDbObject("id" -> portfId)
+
+      val portfsCursor = MongoHelper.portfCollection.find(portfsQuery)
+
+      // Get the bonds in the portfolio
+      val bondIds = MongoHelper.asList(portfsCursor, "instruments")
+
+      val value = bondIds.foldLeft(0.0) { (sum, id) =>
+        
+        // Get the bond from the bond collection
+        val bondQuery = MongoDbObject("id" -> id)
+
+        val bondCursor = MongoHelper.bondCollection.find(bondQuery)
+
+        val bond = MongoHelper.asBond(bondCursor)
+
+        // Price the bond
+        val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+
+        val price = valuator.price
+
+        // Add the price into the aggregate sum
+        sum + price
+      }
+      
+      MongoHelper.updatePrice(portfId,value)
+      
+      val t1 = System.nanoTime
+      
+      Result(portfId,value,bondIds.size,t0,t1) :: sum     
+    }
     
     val t1 = System.nanoTime
-    
-    // Generate the detailed output report
-    if(details) {
-    	println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
-    	
-      outputs.foreach { output =>
-        val id = output.portfId
+  
+    // Generate the output report
+    if (details) {
+      println("%6s %10.10s %-5s %-2s".format("PortId", "Price", "Bonds", "dt"))
 
-        val dt = (output.result.t1 - output.result.t0) / 1000000000.0
+      results.reverse.foreach { result =>
+        val id = result.id
 
-        val bondCount = output.result.bondCount
+        val dt = (result.t1 - result.t0) / 1000000000.0
 
-        val price = output.result.price
+        val bondCount = result.bondCount
 
-        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - now, output.result.t0 - now))
+        val price = result.price
+
+        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - now, result.t0 - now))
       }
     }
     
-    // Compute the "inner" time
-    val dt1 = outputs.foldLeft(0.0) { (sum, output) =>
-      sum + (output.result.t1 - output.result.t0)
-
+    val dt1 = results.foldLeft(0.0) { (sum,result) =>      
+      sum + (result.t1 - result.t0)
+      
     } / 1000000000.0
     
-    // Compute the "outer" time
+    
     val dtN = (t1 - now) / 1000000000.0
-
+    
     val speedup = dt1 / dtN
-
+    
     val numCores = Runtime.getRuntime().availableProcessors()
-
-    val e = speedup / numCores
+    
+    val e = 1.0
     
     os.println("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
         format(dt1,dtN,numCores,speedup,e))  
@@ -120,49 +157,6 @@ class NPortfolio02 {
     
     os.close
     
-    println(me+" DONE! %d %7.4f".format(n,dtN))      
-  }
-   
-  /**
-   * Prices a portfolio using the "basic" algorithm.
-   */
-  def price(input: Data): Data = {
-    // Value each bond in the portfolio
-    val t0 = System.nanoTime
-    
-    // Retrieve the portfolio 
-    val portfId = input.portfId
-    
-    val portfsQuery = MongoDbObject("id" -> portfId)
-
-    val portfsCursor = MongoHelper.portfCollection.find(portfsQuery)
-    
-    // Get the bonds ids in the portfolio
-    val bondIds = MongoHelper.asList(portfsCursor,"instruments")
-    
-    // Price each bond and sum all the prices
-    val value = bondIds.foldLeft(0.0) { (sum, id) =>
-      // Get the bond from the bond collection
-      val bondQuery = MongoDbObject("id" -> id)
-
-      val bondCursor = MongoHelper.bondCollection.find(bondQuery)
-
-      val bond = MongoHelper.asBond(bondCursor)
-      
-      // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
-
-      val price = valuator.price
-      
-      // The price into the aggregate sum
-      sum + price
-    } 
-    
-    // Update the portfolio price    
-    MongoHelper.updatePrice(portfId,value)  
-  
-    val t1 = System.nanoTime
-    
-    Data(portfId,null,Result(portfId,value,bondIds.size,t0,t1))
+    println(me+" DONE! %d %7.4f".format(n,dtN))    
   }
 }

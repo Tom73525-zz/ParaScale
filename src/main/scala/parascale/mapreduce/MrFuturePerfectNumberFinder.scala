@@ -20,28 +20,46 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.future.perfect
+package parascale.mapreduce
 
-/**
-  * Finds the perfect numbers from a candidate list.
-  */
-object PerfectNumberFinder extends App {
+import parascale.future.perfect.{ask, candidates, sumOfFactorsInRange_}
+
+object MrFuturePerfectNumberFinder extends App {
   (0 until candidates.length).foreach { index =>
     val num = candidates(index)
-    println(num + " is perfect? "+ ask(isPerfect_,num))
+    println(num + " is perfect? "+ ask(isPerfectConcurrent,num))
   }
 
-  /**
-    * Retruns true if the candidate is perfect.
-    * @param candidate Candidate number
-    * @return True if candidate is perfect, false otherwise
-    */
-  def isPerfect(candidate: Long) = 2 * candidate == sumOfFactors(candidate)
+  def isPerfectConcurrent(candidate: Long): Boolean = {
+    val RANGE = 1000000L
 
-  /**
-    * Retruns true if the candidate is perfect.
-    * @param candidate Candidate number
-    * @return True if candidate is perfect, false otherwise
-    */
-  def isPerfect_(candidate: Long) = 2 * candidate == sumOfFactors_(candidate)
+    val numberOfPartitions = (candidate.toDouble / RANGE).ceil.toInt
+
+    val ranges = for (i <- 0L until numberOfPartitions) yield {
+      val lower: Long = i * RANGE + 1
+
+      val upper: Long = candidate min (i + 1) * RANGE
+
+      (lower, upper)
+    }
+
+    import scala.concurrent.{Await, Future}
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val futurePartialSums = ranges.map { lowerUpper =>
+      Future {
+        val (lower, upper) = lowerUpper
+
+        sumOfFactorsInRange_(lower, upper, candidate)
+      }
+    }
+
+    val total = futurePartialSums.foldLeft(List[Long]()) { (list, future) =>
+      import scala.concurrent.duration._
+      val partialSum = Await.result(future, 100 seconds)
+
+      list ++ List(partialSum)
+    }.reduce { (a, b) => a+b }
+
+    2 * candidate == total
+  }
 }
