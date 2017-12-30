@@ -23,31 +23,18 @@ package parascale.thread.simple
   * This object is responsible for spawning the child thread and waiting for it
   * to complete.
   */
-object Parent {
-  def main(args: Array[String]): Unit = {
-    val numCores = Runtime.getRuntime.availableProcessors
+object Parent extends App {
+  val numCores = Runtime.getRuntime.availableProcessors
 
-    val child = new Child(numCores)
+  val child = new Child(numCores)
 
-    child.start
+  child.start
 
-    val numThreads = Thread.activeCount
+  val numThreads = Thread.activeCount
 
-    println("parent: threads = "+numThreads)
+  println("parent: threads = "+numThreads)
 
-    child.join
-  }
+  child.join
 }
 
-/**
-  * This class runs the child thread.
-  * @param n Number of cores passed from the parent.
-  */
-class Child(n: Int) extends Thread {
-  /**
-    * This method gets invoke when the parent does start.
-    */
-  override def run(): Unit = {
-    println("child: cores = "+n)
-  }
-}
+

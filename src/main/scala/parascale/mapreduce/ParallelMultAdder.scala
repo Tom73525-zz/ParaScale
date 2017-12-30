@@ -20,51 +20,13 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.mapreduce
 
-import parascale.thread.actor.Constant._
-import org.apache.log4j.Logger
-import scala.util.Random
+object ParallelMultAdder extends App {
+  val nums = List(1, 3, 4, 5, 12, 2, 7, 9)
 
-object Dispatcher extends App {
-  val LOG =  Logger.getLogger(getClass)
+  val sum = nums.par.map { n => 2*n }.reduce { (a, b) => a+b }
 
-  val config = Config()
-
-    val workers = (0 until config.numWorkers).foldLeft(List[Worker]()) { (list, id) =>
-      val worker = new Worker(id)
-
-      worker.start
-
-      list ++ List(worker)
-    }
-
-    val ran = new Random
-
-    for(taskno <- 0 until Constant.NUM_TASKS) {
-      val task = produce(taskno)
-
-      val index = ran.nextInt(workers.size)
-
-      workers(index).send(task)
-    }
-
-    workers.foreach { consumer =>
-      consumer.send(DONE)
-      consumer.join
-  }
-
-  /**
-    * Produces a task.
-    * @param num Task number
-    * @return Task
-    */
-  def produce(num: Int): Task = {
-    Thread.sleep(MAX_PRODUCING)
-
-    LOG.debug("producing task "+num)
-    Task(num, MAX_PRODUCING)
-  }
+  println(sum)
 }
-
 

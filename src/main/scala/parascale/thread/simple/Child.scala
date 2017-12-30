@@ -1,6 +1,5 @@
 /*
  Copyright (c) Ron Coleman
-
  Permission is hereby granted, free of charge, to any person obtaining
  a copy of this software and associated documentation files (the
  "Software"), to deal in the Software without restriction, including
@@ -8,10 +7,8 @@
  distribute, sublicense, and/or sell copies of the Software, and to
  permit persons to whom the Software is furnished to do so, subject to
  the following conditions:
-
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
-
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -20,51 +17,13 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.thread.simple
 
-import parascale.thread.actor.Constant._
-import org.apache.log4j.Logger
-import scala.util.Random
-
-object Dispatcher extends App {
-  val LOG =  Logger.getLogger(getClass)
-
-  val config = Config()
-
-    val workers = (0 until config.numWorkers).foldLeft(List[Worker]()) { (list, id) =>
-      val worker = new Worker(id)
-
-      worker.start
-
-      list ++ List(worker)
-    }
-
-    val ran = new Random
-
-    for(taskno <- 0 until Constant.NUM_TASKS) {
-      val task = produce(taskno)
-
-      val index = ran.nextInt(workers.size)
-
-      workers(index).send(task)
-    }
-
-    workers.foreach { consumer =>
-      consumer.send(DONE)
-      consumer.join
-  }
-
+class Child(n: Int) extends Thread {
   /**
-    * Produces a task.
-    * @param num Task number
-    * @return Task
+    * This method gets invoke when the parent does start.
     */
-  def produce(num: Int): Task = {
-    Thread.sleep(MAX_PRODUCING)
-
-    LOG.debug("producing task "+num)
-    Task(num, MAX_PRODUCING)
+  override def run(): Unit = {
+    println(n + " cores")
   }
 }
-
-
