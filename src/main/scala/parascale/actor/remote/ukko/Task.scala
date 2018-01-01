@@ -27,13 +27,13 @@ import java.net.Socket
 
 /**
   * A wrapper class for remote actors to reply
-  * @param host Source host
-  * @param port Source port
+  * @param srcHost Source host
+  * @param srcPort Source port
   * @param payload Inbound payload
   */
-case class Packet(host: String, port: Int, payload: Any) extends Serializable {
+case class Task(srcHost: String, srcPort: Int, payload: Any) extends Serializable {
   def reply(msg: Any): Unit = {
-    val socket = new Socket(host,port)
+    val socket = new Socket(srcHost,srcPort)
 
     val os = socket.getOutputStream
 
@@ -46,4 +46,10 @@ case class Packet(host: String, port: Int, payload: Any) extends Serializable {
 
     os.close
   }
+
+  /**
+    * Converts instance to string.
+    * @return String representation
+    */
+  override def toString = "payload " + payload + " replies to " + srcHost + ":" +srcPort
 }

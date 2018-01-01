@@ -31,12 +31,9 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
   * This class is an actor which relays message from the local (or srouce host) to a remote (or destination) host.
   * @param destHost Destination host
   * @param destPort Port on destination host
-  * @param actor Optional actor if specified can receive replies.
+  * @param callback Actor to receive replies.
   */
-class Relay(destHost: String, destPort: Int, actor: Option[ActorRef]) extends Actor with Runnable {
-  def this(remoteHost: String,port: Int) = this(remoteHost,port,None)
-  def this(remoteHost: String, port: Int, actor: ActorRef) = this(remoteHost,port,Some(actor))
-
+class Relay(destHost: String, destPort: Int, callback: ActorRef) extends Actor with Runnable {
   import org.apache.log4j.Logger
   val LOG =  Logger.getLogger(getClass)
 
@@ -47,29 +44,13 @@ class Relay(destHost: String, destPort: Int, actor: Option[ActorRef]) extends Ac
   val srcPort = destPort + Thread.activeCount
   LOG.info("listening for replies to port "+srcPort)
 
-  // If there's a local actor specified, spawn worker thread to get replies
-  actor match {
-    case Some(_) =>
-      new Thread(this).start
-
-    case None =>
-  }
+  // Start the listener thread to receive replies
+  new Thread(this).start
 
   /** Receives actor messages to be relayed outbound to a remote client */
   def receive = {
     case obj =>
-      val msg = actor match {
-        case Some(_) =>
-          // Wrap the outbound object with reply info
-          LOG.info("wrapping message object "+obj)
-          Packet(srcHost, srcPort, obj)
-
-        case None =>
-          // Nobody listening on this side so just send the message unwrapped
-          obj
-      }
-
-      send(msg)
+      send(Task(srcHost, srcPort, obj))
   }
 
   /**
@@ -104,17 +85,10 @@ class Relay(destHost: String, destPort: Int, actor: Option[ActorRef]) extends Ac
       LOG.info("connection accepted")
       val ois = new ObjectInputStream(clientSocket.getInputStream)
 
-      val obj = ois.readObject
-      LOG.info("received reply object "+obj)
+      val msg = ois.readObject
+      LOG.info("received reply message "+msg)
 
-      actor match {
-        case Some(actor) =>
-          LOG.info("dispatching reply to actor "+actor)
-          actor ! obj
-
-        case None =>
-          LOG.info("reply not dispatched")
-      }
+      callback ! msg
 
       ois.close
       clientSocket.close

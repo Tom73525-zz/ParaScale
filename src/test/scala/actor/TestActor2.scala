@@ -2,7 +2,7 @@ package actor
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 
-import parascale.actor.remote.ukko.{Packet, Remote}
+import parascale.actor.remote.ukko.{Task, Remote}
 
 object TestActor2 {
   def main(args: Array[String]): Unit = {
@@ -23,11 +23,12 @@ class TestActor2 extends Actor {
       println("got an A!")
     case s: String =>
       println(s)
-    case pkt: Packet =>
-      println("got a packet from "+pkt.host)
-      pkt.payload match {
+    case task: Task =>
+      println("got a task replies to "+task.srcHost+":"+task.srcPort)
+      task.payload match {
         case a: A =>
-          println("got an A via the packet")
+          println("got an A task")
+          task.reply("received A")
       }
   }
 }
