@@ -1,6 +1,5 @@
 /*
  Copyright (c) Ron Coleman
-
  Permission is hereby granted, free of charge, to any person obtaining
  a copy of this software and associated documentation files (the
  "Software"), to deal in the Software without restriction, including
@@ -8,10 +7,8 @@
  distribute, sublicense, and/or sell copies of the Software, and to
  permit persons to whom the Software is furnished to do so, subject to
  the following conditions:
-
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
-
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -20,31 +17,18 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.thread.basic
 
-case class Config(numWorkers: Int, numTasks: Int)
+object ParentWithRunnable extends App {
+  val numCores = Runtime.getRuntime.availableProcessors
 
-object Config {
-  def apply(): Config = {
-    val workersProp = System.getProperty("workers")
+  val child = new Thread(new ChildRunnable(numCores))
 
-    val numWorkers = workersProp match {
-      case prop:String =>
-        prop.toInt
+  child.start
 
-      case null =>
-        Runtime.getRuntime.availableProcessors
-    }
+  val numThreads = Thread.activeCount
 
-    val tasksProp = System.getProperty("tasks")
-    val numTasks = workersProp match {
-      case prop:String =>
-        prop.toInt
+  println("parent: threads = "+numThreads)
 
-      case null =>
-        Constant.NUM_TASKS
-    }
-
-    Config(numWorkers, numTasks)
-  }
+  child.join
 }

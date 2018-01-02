@@ -20,7 +20,7 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.thread.actorlike
 
 import org.apache.log4j.Logger
 
@@ -28,8 +28,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
 /**
-  * This class consumes tasks through
-  * its mailbox.
+  * This class consumes tasks through its mailbox.
   */
 class Worker(id: Int) extends Thread {
   import Constant._
@@ -47,7 +46,7 @@ class Worker(id: Int) extends Thread {
 
   /** Runs the consumer loop. */
   override def run(): Unit = {
-    LOG.info("consumer " + id + " started")
+    LOG.info("work " + id + " spawned")
 
     val tasks = ListBuffer[Task]()
 
@@ -61,11 +60,11 @@ class Worker(id: Int) extends Thread {
           else {
             // If done, log the effort and stop the thread
             tasks.foreach { task =>
-              LOG.info("duration " + task.duration)
+              LOG.info("finish " + task)
             }
             return
           }
-
+          
         case None =>
           LOG.debug("mailbox empty")
       }
@@ -77,14 +76,27 @@ class Worker(id: Int) extends Thread {
     * @param task Task
     */
   def process(task: Task): Task = {
-    if(task != DONE) {
-      LOG.debug("consuming task " + task.num)
-      val working = ran.nextInt(MAX_WORKING)
-      Thread.sleep(working)
+    task match {
+      case DONE =>
+        LOG.info("processing DONE")
+        task
 
-      Task(task.num,working)
+      case _ =>
+        LOG.debug("processing task " + task.number)
+
+        val working = ran.nextInt(MAX_WORKING)
+        sleep(working)
+
+        val result = Task(task.number,working)
+
+        LOG.info("task complete: "+result)
+        result
     }
-    else
-      DONE
   }
+
+  /**
+    * Puts a thread to sleep.
+    * @param millis Milliseconds to sleep
+    */
+  def sleep(millis: Int) = Thread.sleep(millis)
 }

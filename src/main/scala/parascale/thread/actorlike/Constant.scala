@@ -20,10 +20,19 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.thread.actorlike
 
-/**
-  * Tasks are both produced and consumed.
-  * @param num Task number
-  */
-case class Task(num: Int, duration: Long)
+/** Some constants */
+object Constant {
+  /** Max working time in milliseconds */
+  val MAX_WORKING = 5000
+
+  /** Max working time to produce a task in seconds */
+  val MAX_PRODUCING = 0.25
+
+  /** Max number of tasks to produce */
+  val NUM_TASKS = 5
+
+  /** Stop work token */
+  val DONE = Task(-1, -1)
+}

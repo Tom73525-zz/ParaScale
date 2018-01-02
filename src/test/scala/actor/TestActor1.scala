@@ -8,9 +8,9 @@ import parascale.actor.remote.ukko.{Relay}
 
 object TestActor1 {
   def main(args: Array[String]): Unit = {
-    val system = ActorSystem("Transceiver")
+    val system = ActorSystem("ParaScale")
 
-    val me = system.actorOf(Props[TestActor2],"Test actor 2")
+    val me = system.actorOf(Props[TestActor2],"Test actor 1")
 
     val destHost = InetAddress.getLocalHost.getHostAddress
     val destPort = 9000

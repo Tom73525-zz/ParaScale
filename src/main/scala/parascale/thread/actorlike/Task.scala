@@ -1,5 +1,6 @@
 /*
  Copyright (c) Ron Coleman
+
  Permission is hereby granted, free of charge, to any person obtaining
  a copy of this software and associated documentation files (the
  "Software"), to deal in the Software without restriction, including
@@ -7,8 +8,10 @@
  distribute, sublicense, and/or sell copies of the Software, and to
  permit persons to whom the Software is furnished to do so, subject to
  the following conditions:
+
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
+
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -17,24 +20,14 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.simple
+package parascale.thread.actorlike
 
 /**
-  * This object is responsible for spawning the child thread and waiting for it
-  * to complete.
+  * Tasks are both produced and consumed.
+  * @param number Task number
+  * @param duration Milliseconds to complete task
+  *
   */
-object Parent extends App {
-  val numCores = Runtime.getRuntime.availableProcessors
-
-  val child = new Child(numCores)
-
-  child.start
-
-  val numThreads = Thread.activeCount
-
-  println("parent: threads = "+numThreads)
-
-  child.join
+case class Task(number: Int, duration: Long) {
+  override def toString = "number: " + number + " duration: " + duration
 }
-
-

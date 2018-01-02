@@ -20,51 +20,41 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.thread.actorlike
 
-import parascale.thread.actor.Constant._
-import org.apache.log4j.Logger
-import scala.util.Random
+/**
+  * This class implements the consumer's mailbox
+  */
+class Mailbox {
+  val NEXT = 0
 
-object Dispatcher extends App {
-  val LOG =  Logger.getLogger(getClass)
+  // Implement the mail queue as a mutable list buffer.
+  import scala.collection.mutable.ListBuffer
+  val queue = ListBuffer[Task]()
 
-  val config = Config()
+  /**
+    * Adds a task to the mailbox.
+    * @param task Task
+    */
+  def add(task: Task): Unit = synchronized {
+    // Adds a task then wakes up any waiting threads
+    queue.append(task)
 
-    val workers = (0 until config.numWorkers).foldLeft(List[Worker]()) { (list, id) =>
-      val worker = new Worker(id)
-
-      worker.start
-
-      list ++ List(worker)
-    }
-
-    val ran = new Random
-
-    for(taskno <- 0 until Constant.NUM_TASKS) {
-      val task = produce(taskno)
-
-      val index = ran.nextInt(workers.size)
-
-      workers(index).send(task)
-    }
-
-    workers.foreach { consumer =>
-      consumer.send(DONE)
-      consumer.join
+    // Note: notifications are NOT buffered, although tasks are!
+    this.notify
   }
 
   /**
-    * Produces a task.
-    * @param num Task number
-    * @return Task
+    * Removes a task from the queue.
+    * @return Some task
     */
-  def produce(num: Int): Task = {
-    Thread.sleep(MAX_PRODUCING)
+  def remove: Option[Task] = synchronized {
+    // If the queue is emtpy then we'll wait otherwise get the next task immediately
+    if(queue.isEmpty)
+      this.wait
 
-    LOG.debug("producing task "+num)
-    Task(num, MAX_PRODUCING)
+    val task = queue.remove(NEXT);
+
+    Some(task)
   }
 }
-
-

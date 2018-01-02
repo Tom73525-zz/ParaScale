@@ -1,6 +1,5 @@
 /*
  Copyright (c) Ron Coleman
-
  Permission is hereby granted, free of charge, to any person obtaining
  a copy of this software and associated documentation files (the
  "Software"), to deal in the Software without restriction, including
@@ -8,10 +7,8 @@
  distribute, sublicense, and/or sell copies of the Software, and to
  permit persons to whom the Software is furnished to do so, subject to
  the following conditions:
-
  The above copyright notice and this permission notice shall be
  included in all copies or substantial portions of the Software.
-
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -20,12 +17,13 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.actor
+package parascale.thread.basic
 
-/** Some constants */
-object Constant {
-  val MAX_WORKING = 5 * 1000
-  val MAX_PRODUCING = 250
-  val NUM_TASKS = 5
-  val DONE = Task(-1, -1)
+class ChildThread(numCores: Int) extends Thread {
+  /**
+    * Runs the child thread
+    */
+  override def run(): Unit = {
+    println("child: "+numCores + " cores")
+  }
 }

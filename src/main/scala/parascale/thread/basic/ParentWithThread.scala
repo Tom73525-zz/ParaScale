@@ -17,13 +17,24 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.thread.simple
+package parascale.thread.basic
 
-class Child(n: Int) extends Thread {
-  /**
-    * This method gets invoke when the parent does start.
-    */
-  override def run(): Unit = {
-    println(n + " cores")
-  }
+/**
+  * This object is responsible for spawning the child thread and waiting for it
+  * to complete.
+  */
+object ParentWithThread extends App {
+  val numCores = Runtime.getRuntime.availableProcessors
+
+  val child = new ChildThread(numCores)
+
+  child.start
+
+  val numThreads = Thread.activeCount
+
+  println("parent: threads = "+numThreads)
+
+  child.join
 }
+
+
