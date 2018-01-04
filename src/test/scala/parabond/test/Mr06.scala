@@ -87,7 +87,7 @@ class Mr06 {
     val list = resultsUnsorted.foldLeft(List[Result]()) { (list, rsult) =>
       val (portfId, result) = rsult
 
-      list ::: List(result)
+      list ++ List(result)
     }
 
     val results = list.sortWith(_.t0 < _.t0)
@@ -107,7 +107,6 @@ class Mr06 {
 
     val dt1 = results.foldLeft(0.0) { (sum, result) =>
       sum + (result.t1 - result.t0)
-
     } / 1000000000.0
 
     val dtN = (t1 - t0) / 1000000000.0

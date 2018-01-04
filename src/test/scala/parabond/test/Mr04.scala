@@ -47,7 +47,7 @@ object Mr04 {
  */
 class Mr04 {
   /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 10
+  val PORTF_NUM = 100
 
   /** Connects to the parabond DB */
   val mongo = MongoConnection(MongoHelper.getHost)("parabond")
