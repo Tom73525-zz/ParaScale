@@ -91,7 +91,7 @@ class Mr05 {
       
       val dt1 = (results(1).t1 - results(1).t0) / 1000000000.0      
         
-      println("%6d %10.2f %10.2f %6.4f %6.4f".format(results(0).portfId, results(0).price, results(1).price, dt0, dt1))
+      println("%6d %10.2f %10.2f %6.4f %6.4f".format(results(0).portfId, results(0).value, results(1).value, dt0, dt1))
       
     }
   }
@@ -105,9 +105,9 @@ class Mr05 {
     
     val t1 = System.nanoTime
     
-    val rsult = result(portfId)(0)
+    val rsult = result(portfId)
     
-    Result(portfId,rsult.price,rsult.bondCount,t0,t1)
+    Result(portfId,rsult.value,rsult.bondCount,t0,t1)
   }
   
   def priceSerially(portfId : Int) : Result = {
@@ -153,7 +153,7 @@ class Mr05 {
     * @param portfId Portfolio id
     * @return List of (portf id, bond value))
     */
-  def mapping(portfId: Int): List[(Int,Result)] = {
+  def mapping(portfId: Int): List[Result] = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -194,18 +194,23 @@ class Mr05 {
 
     val t1 = System.nanoTime
 
-    List((portfId, Result(portfId,value,bondIds.size,t0,t1)))
+    List(Result(portfId,value,bondIds.size,t0,t1))
   }
-  
+
   /**
-   * Reduces trivially portfolio prices.
-   * Since there's only one price per porfolio, there's nothing
-   * really to reduce! 
-   * @param portfId Portfolio id
-   * @param results Bond valuations
-   * @return List of portfolio valuation, one per portfolio
-   */
-  def reducing(portfId: Int, results: List[Result]): List[Result] = {
-    List(results(0))
+    * Reduces bond prices to a single portfolio price.
+    * @param portfId Portfolio id
+    * @param valuations Bond valuations
+    * @return List of portfolio valuation, one per portfolio
+    */
+  def reducing(portfId: Int, valuations: List[Result]): Result = {
+    val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
+
+      val t0 = Math.min(composite.t0, result.t0)
+      val t1 = Math.max(composite.t1, result.t1)
+
+      Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
+    }
+    total
   }
 }

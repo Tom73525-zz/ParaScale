@@ -94,7 +94,7 @@ class Ser03 {
 
         val bondCount = output.result.bondCount
 
-        val price = output.result.price
+        val price = output.result.value
 
         println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - now, output.result.t0 - now))
       }

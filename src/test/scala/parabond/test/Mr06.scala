@@ -87,7 +87,7 @@ class Mr06 {
     val list = resultsUnsorted.foldLeft(List[Result]()) { (list, rsult) =>
       val (portfId, result) = rsult
 
-      list ::: List(result(0))
+      list ::: List(result)
     }
 
     val results = list.sortWith(_.t0 < _.t0)
@@ -100,7 +100,7 @@ class Mr06 {
 
         val bondCount = result.bondCount
 
-        val price = result.price
+        val price = result.value
 
         println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - t0, result.t0 - t0))
       }
@@ -127,7 +127,7 @@ class Mr06 {
    * @param portfId Portfolio id
    * @return List of (portf id, bond value))
    */
-  def mapping(portfId: Int, bonds: List[SimpleBond]): List[(Int, Result)] = {
+  def mapping(portfId: Int, bonds: List[SimpleBond]): List[Result] = {
     val t0 = System.nanoTime
     
     val price = bonds.foldLeft(0.0) { (sum, bond) =>
@@ -148,18 +148,23 @@ class Mr06 {
     
     val t1 = System.nanoTime
     
-    List((portfId, Result(portfId,price,bonds.size,t0,t1)))
+    List(Result(portfId,price,bonds.size,t0,t1))
   }
 
   /**
-   * Reduces trivially portfolio prices.
-   * Since there's only one price per porfolio, there's nothing
-   * really to reduce!
-   * @param portfId Portfolio id
-   * @param results Bond valuations
-   * @return List of portfolio valuation, one per portfolio
-   */
-  def reducing(portfId: Int, results: List[Result]): List[Result] = {
-    List(results(0))
+    * Reduces bond prices to a single portfolio price.
+    * @param portfId Portfolio id
+    * @param valuations Bond valuations
+    * @return List of portfolio valuation, one per portfolio
+    */
+  def reducing(portfId: Int, valuations: List[Result]): Result = {
+    val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
+
+      val t0 = Math.min(composite.t0, result.t0)
+      val t1 = Math.max(composite.t1, result.t1)
+
+      Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
+    }
+    total
   }
 }

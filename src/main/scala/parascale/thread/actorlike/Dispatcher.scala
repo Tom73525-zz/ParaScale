@@ -24,7 +24,7 @@ package parascale.thread.actorlike
 
 import parascale.thread.actorlike.Constant._
 import org.apache.log4j.Logger
-import scala.util.Random
+import parascale.util._
 
 object Dispatcher extends App {
   val LOG =  Logger.getLogger(getClass)
@@ -32,7 +32,7 @@ object Dispatcher extends App {
   // Spawn
   val numCores = Runtime.getRuntime.availableProcessors
 
-  val numWorkers = getOrDefault("workers", numCores)
+  val numWorkers = getPropertyOrDefault("workers", numCores)
 
   val workers = spawnWorkers(numWorkers)
 
@@ -53,7 +53,7 @@ object Dispatcher extends App {
   }
 
   def dispatch(workers: List[Worker]): Unit = {
-    val numTasks = getOrDefault("tasks",Constant.NUM_TASKS)
+    val numTasks = getPropertyOrDefault("tasks",Constant.NUM_TASKS)
 
     for(taskno <- 0 until numTasks) {
       val task = produce(taskno)
@@ -80,33 +80,7 @@ object Dispatcher extends App {
     Task(num, (MAX_PRODUCING*1000).toLong)
   }
 
-  /**
-    * Gets an integer value from system properties, if it's not found use a default.
-    * @param key Property
-    * @param default Default integer
-    * @return Default integer value
-    */
-  def getOrDefault(key: String,default: Int): Int = getOrDefault(key,Integer.parseInt,default)
 
-  /**
-    * Gets a generic property from the system properyies, if it's not found use a default.
-    * @param key Property
-    * @param parse Parser
-    * @param default Default
-    * @tparam T Parameterize type of value
-    * @return Default value
-    */
-  def getOrDefault[T](key: String,parse: (String) => T, default: T): T = {
-    val value = System.getProperty(key)
-
-    if(value == null)
-      default
-    else
-      parse(value)
-  }
-
-  def sleep(millis: Long) = Thread.sleep(millis)
-  def sleep(seconds: Double) = Thread.sleep((seconds * 1000).toInt)
 }
 
 

@@ -31,7 +31,7 @@ import parascale.parabond.entry.SimpleBond
 /**
  * Performance result
  */
-case class Result(portfId: Int, price: Double, bondCount: Int, t0: Long, t1: Long)
+case class Result(portfId: Int, value: Double, bondCount: Int, t0: Long, t1: Long)
   
 /**
  * Data object used for input and output

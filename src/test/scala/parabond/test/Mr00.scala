@@ -57,17 +57,17 @@ class Mr00 {
     // Run the map-reduce
     val t0 = System.nanoTime
     
-    val result = MapReduce.basic(input, mapping, reducing)
+    val results = MapReduce.basic(input, mapping, reducing)
     
     val t1 = System.nanoTime
     
     println("%6s %10.10s".format("PortId","Value"))
 
     // Generate the report by portfolio with the run-time
-    result.foreach {
-      case(portfId, values) =>
-      	println("%6d %10.2f".format(portfId,values(0)))        
+    for((portfId, result) <- results) {
+      println("%6d %10.2f".format(portfId, result.value))
     }
+
     
     val dt = (t1 - t0) / 1000000000.0
     
@@ -79,7 +79,7 @@ class Mr00 {
    * @param portfId Portfolio id
    * @return List of (portf id, bond value))
    */
-  def mapping(portfId: Int): List[(Int,Result)] = {
+  def mapping(portfId: Int): List[Result] = {
     val portfsCollecton = mongo("Portfolios")
     
     val portfsQuery = MongoDbObject("id" -> portfId)
@@ -116,18 +116,23 @@ class Mr00 {
     
     println("value = %10.2f bonds = %d dt = %f".format(value,bondIds.size,dt))
 
-    List((portfId, Result(portfId,value,bondIds.size,t0,t1)))
+    List(Result(portfId, value, bondIds.size, t0, t1))
   }
 
   /**
-    * Reduces trivially portfolio prices.
-    * Since there's only one price per porfolio, there's nothing
-    * really to reduce!
+    * Reduces bond prices to a single portfolio price.
     * @param portfId Portfolio id
-    * @param vals Bond valuations
+    * @param valuations Bond valuations
     * @return List of portfolio valuation, one per portfolio
     */
-  def reducing(portfId: Int,vals: List[Result]): List[Result] = {
-    List(vals(0))
+  def reducing(portfId: Int, valuations: List[Result]): Result = {
+    val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
+
+      val t0 = Math.min(composite.t0, result.t0)
+      val t1 = Math.max(composite.t1, result.t1)
+
+      Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
+    }
+    total
   }
 }

@@ -78,7 +78,7 @@ class Par02 {
     val now = System.nanoTime  
     val results = input.par.map(priced) 
     results.par.reduce { (a: Data, b:Data) =>
-      Data(0,null,Result(0,a.result.price + b.result.price,0,0,0))
+      Data(0,null,Result(0,a.result.value + b.result.value,0,0,0))
     }
     val t1 = System.nanoTime
     

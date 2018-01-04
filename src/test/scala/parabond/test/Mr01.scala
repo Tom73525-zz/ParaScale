@@ -85,7 +85,7 @@ class Mr01 {
     }
     
     // Map-reduce the input
-    val now = System.nanoTime
+    val t0 = System.nanoTime
     
     val resultsUnsorted = MapReduce.basic(input, mapping, reducing)
     
@@ -98,7 +98,7 @@ class Mr01 {
     val list = resultsUnsorted.foldLeft(List[Result]()) { (list, rsult) =>
       val (portfId, result) = rsult
       
-      list ::: List(result(0))
+      list ::: List(result)
     }
     
     val results = list.sortWith(_.t0 < _.t0)
@@ -111,9 +111,9 @@ class Mr01 {
 
         val bondCount = result.bondCount
 
-        val price = result.price
+        val price = result.value
 
-        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - now, result.t0 - now))
+        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - t0, result.t0 - t0))
       }
     
     val dt1 = results.foldLeft(0.0) { (sum,result) =>      
@@ -121,7 +121,7 @@ class Mr01 {
       
     } / 1000000000.0
     
-    val dtN = (t1 - now) / 1000000000.0
+    val dtN = (t1 - t0) / 1000000000.0
     
     val speedup = dt1 / dtN
     
@@ -144,7 +144,7 @@ class Mr01 {
    * @param portfId Portfolio id
    * @return List of (portf id, bond value))
    */
-  def mapping(portfId: Int): List[(Int,Result)] = {
+  def mapping(portfId: Int): List[Result] = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
     
@@ -185,18 +185,22 @@ class Mr01 {
     
     val t1 = System.nanoTime
     
-    List((portfId, Result(portfId,value,bondIds.size,t0,t1)))
+    List(Result(portfId,value,bondIds.size,t0,t1))
   }
-  
   /**
-   * Reduces trivially portfolio prices.
-   * Since there's only one price per porfolio, there's nothing
-   * really to reduce! 
-   * @param portfId Portfolio id
-   * @param vals Bond valuations
-   * @return List of portfolio valuation, one per portfolio
-   */
-  def reducing(portfId: Int,vals: List[Result]): List[Result] = {
-    List(vals(0))
+    * Reduces bond prices to a single portfolio price.
+    * @param portfId Portfolio id
+    * @param valuations Bond valuations
+    * @return List of portfolio valuation, one per portfolio
+    */
+  def reducing(portfId: Int, valuations: List[Result]): Result = {
+    val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
+
+      val t0 = Math.min(composite.t0, result.t0)
+      val t1 = Math.max(composite.t1, result.t1)
+
+      Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
+    }
+    total
   }
 }
