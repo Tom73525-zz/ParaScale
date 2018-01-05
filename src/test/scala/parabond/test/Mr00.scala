@@ -26,10 +26,7 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa._
-import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.{Helper, Result}
-import parascale.parabond.value.SimpleBondValuator
+import parabond.mr._
 
 /** Test driver */
 object Mr00 {
@@ -39,25 +36,22 @@ object Mr00 {
 }
 
 /**
- * This class runs a map-reduce unit test for n portfolios in the
- * parabond database. It uses one portfolio per actor for the first
- * portfolios.
- * @author Ron Coleman, Ph.D.
+ * This class runs a mapreduce unit test for a limted number portfolios in the parabond database.
+ * @author Ron Coleman
  */
 class Mr00 {
-  /** Gets a connection to the parabond database */
-  val mongo = MongoConnection(MongoHelper.getHost)("parabond")
+
   
   def test {
     // Create the input of a list of Tuple2(portf id, curve coefficients).
     val input = (1 to 4).foldLeft(List[Int]()) { (list, p) =>
-      list ::: List(p)
+      list ++ List(p)
     }
     
     // Run the map-reduce
     val t0 = System.nanoTime
     
-    val results = MapReduce.basic(input, mapping, reducing)
+    val results = mapreduce(input, mapping, reducing)
     
     val t1 = System.nanoTime
     
@@ -68,71 +62,8 @@ class Mr00 {
       println("%6d %10.2f".format(portfId, result.value))
     }
 
-    
     val dt = (t1 - t0) / 1000000000.0
     
     println("dt = %f".format(dt))    
-  }
-  
-  /**
-   * Mapping function
-   * @param portfId Portfolio id
-   * @return List of (portf id, bond value))
-   */
-  def mapping(portfId: Int): List[Result] = {
-    val portfsCollecton = mongo("Portfolios")
-    
-    val portfsQuery = MongoDbObject("id" -> portfId)
-
-    val portfsCursor = portfsCollecton.find(portfsQuery)
-    
-    val bondIds = MongoHelper.asList(portfsCursor,"instruments")
-    
-    val bondsCollection = mongo("Bonds")
-
-    val t0 = System.nanoTime
-    
-    val value = bondIds.foldLeft(0.0) { (sum, id) =>
-      val bondsQuery = MongoDbObject("id" -> id)
-
-      val bondsCursor = bondsCollection.find(bondsQuery)
-
-      val bond = MongoHelper.asBond(bondsCursor)
-
-//      print("bond(" + bond + ") = ")
-      
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
-
-      val price = valuator.price
-
-//      println("%8.2f".format(price))
-      
-      sum + price
-    }    
-    
-    val t1 = System.nanoTime
-    
-    val dt = (t1 - t0) / 1000000000.0
-    
-    println("value = %10.2f bonds = %d dt = %f".format(value,bondIds.size,dt))
-
-    List(Result(portfId, value, bondIds.size, t0, t1))
-  }
-
-  /**
-    * Reduces bond prices to a single portfolio price.
-    * @param portfId Portfolio id
-    * @param valuations Bond valuations
-    * @return List of portfolio valuation, one per portfolio
-    */
-  def reducing(portfId: Int, valuations: List[Result]): Result = {
-    val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
-
-      val t0 = Math.min(composite.t0, result.t0)
-      val t1 = Math.max(composite.t1, result.t1)
-
-      Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
-    }
-    total
   }
 }

@@ -26,11 +26,10 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoConnection, MongoHelper}
-import parascale.parabond.entry.SimpleBond
+import parascale.parabond.casa.{MongoHelper}
 import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.{Helper, Result}
-import parascale.parabond.value.SimpleBondValuator
+import parascale.parabond.util.{Result}
+import parabond.mr._
 
 /** Test driver */
 object Mr03 {
@@ -40,10 +39,9 @@ object Mr03 {
 }
 
 /**
- * This class runs a map-reduce unit test for n portfolios in the
- * parabond database. It first loads all referenced bonds to memory.
- * @author Ron Coleman, Ph.D.
- */
+  * This class runs a memorybound mapreduce for arbitrary number of portfolios in the parabond database.
+  * @author Ron Coleman
+  */
 class Mr03 {
   /** Number of bond portfolios to analyze */
   val PORTF_NUM = 100
@@ -74,9 +72,7 @@ class Mr03 {
 
     // Map-reduce the input
     val t0 = System.nanoTime
-
     val resultsUnsorted = MapReduce.memorybound(input, mapping, reducing)
-
     val t1 = System.nanoTime
 
     // Generate the output report
@@ -127,46 +123,5 @@ class Mr03 {
     os.close
     
     println(me+" DONE! %d %7.4f".format(n,dtN))   
-  }
-
-  /**
-    * Maps a portfolio to a single price
-    * @param portfId Portfolio id
-    * @param bonds
-    * @return
-    */
-  def mapping(portfId: Int, bonds: List[SimpleBond]): List[Result] = {
-    val t0 = System.nanoTime
-    
-    val price = bonds.foldLeft(0.0) { (sum, bond) =>
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
-
-      val price = valuator.price
-
-      sum + price      
-    }
-   
-    val t1 = System.nanoTime
-    
-    MongoHelper.updatePrice(portfId,price)    
-    
-    List(Result(portfId,price,bonds.size,t0,t1))
-  }
-
-  /**
-    * Reduces bond prices to a single portfolio price.
-    * @param portfId Portfolio id
-    * @param valuations Bond valuations
-    * @return List of portfolio valuation, one per portfolio
-    */
-  def reducing(portfId: Int, valuations: List[Result]): Result = {
-    val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
-
-      val t0 = Math.min(composite.t0, result.t0)
-      val t1 = Math.max(composite.t1, result.t1)
-
-      Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
-    }
-    total
   }
 }

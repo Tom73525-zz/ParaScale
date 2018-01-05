@@ -1,43 +1,135 @@
-/*
- * Copyright (c) Ron Coleman
- * See CONTRIBUTORS.TXT for a full list of copyright holders.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Scaly Project nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE DEVELOPERS ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE CONTRIBUTORS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-package parascale.parabond.mr
+package parabond
 
+import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
 import parascale.parabond.entry.SimpleBond
-import parascale.parabond.util.Result
+import parascale.parabond.util.{Helper, Result}
 
 import scala.concurrent.{Await, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import parascale.parabond.value.SimpleBondValuator
 
-/**
-  * This object contains convenience methods for running mapreduce operations
-  * on a portfolio of bonds.
-  */
-object MapReduce {
+package object mr {
+  /** Default number of bond portfolios to analyze */
+  val PORTF_NUM = 100
+
+  /** Gets a connection to the parabond database */
+  val mongo = MongoConnection(MongoHelper.getHost)("parabond")
+
+  /**
+    * Mapping function
+    * @param portfId Portfolio id
+    * @return List of (portf id, bond value))
+    */
+  def mapping(portfId: Int): List[Result] = {
+
+    val portfsCollecton = mongo("Portfolios")
+
+    val portfsQuery = MongoDbObject("id" -> portfId)
+
+    val portfsCursor = portfsCollecton.find(portfsQuery)
+
+    val bondIds = MongoHelper.asList(portfsCursor,"instruments")
+
+    val bondsCollection = mongo("Bonds")
+
+    val t0 = System.nanoTime
+
+    val value = bondIds.foldLeft(0.0) { (sum, id) =>
+      val bondsQuery = MongoDbObject("id" -> id)
+
+      val bondsCursor = bondsCollection.find(bondsQuery)
+
+      val bond = MongoHelper.asBond(bondsCursor)
+
+      //      print("bond(" + bond + ") = ")
+
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+
+      val price = valuator.price
+
+      sum + price
+    }
+
+    val entry = MongoDbObject("id" -> portfId, "instruments" -> bondIds, "value" -> value)
+
+    mongo("Portfolios").insertOne(entry)
+
+    val t1 = System.nanoTime
+
+    val dt = (t1 - t0) / 1000000000.0
+
+    println("value = %10.2f bonds = %d dt = %f".format(value,bondIds.size,dt))
+
+    List(Result(portfId, value, bondIds.size, t0, t1))
+  }
+
+    /**
+     * Maps a portfolio to a single price
+     * @param portfId Portfolio id
+     * @param bondId Bond id for the specified portfolio id
+     * @return List of (portf id, bond value))
+     */
+    def mapping(portfId: Int, bondId: Int): Result = {
+      val t0 = System.nanoTime
+
+      val bondsCollection = mongo("Bonds")
+
+      val bondQuery = MongoDbObject("id" -> bondId)
+
+      val bondCursor = bondsCollection.find(bondQuery)
+
+      val bond = MongoHelper.asBond(bondCursor)
+
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+
+      val price = valuator.price
+
+      val t1 = System.nanoTime
+
+      Result(portfId, price, 1 , t0, t1)
+    }
+
+  /**
+    * Maps a portfolio to a single price
+    * @param portfId Portfolio id
+    * @param bonds
+    * @return
+    */
+  def mapping(portfId: Int, bonds: List[SimpleBond]): List[Result] = {
+    val t0 = System.nanoTime
+
+    val price = bonds.foldLeft(0.0) { (sum, bond) =>
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+
+      val price = valuator.price
+
+      sum + price
+    }
+
+    val t1 = System.nanoTime
+
+    MongoHelper.updatePrice(portfId,price)
+
+    List(Result(portfId,price,bonds.size,t0,t1))
+  }
+
+  /**
+      * Reduces bond prices to a single portfolio price.
+      * @param portfId Portfolio id
+      * @param valuations Bond valuations
+      * @return List of portfolio valuation, one per portfolio
+      */
+    def reducing(portfId: Int, valuations: List[Result]): Result = {
+      val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
+
+        val t0 = Math.min(composite.t0, result.t0)
+        val t1 = Math.max(composite.t1, result.t1)
+
+        Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
+      }
+      total
+    }
+
   /**
     * Maps a portfolio to its value using trivial reduction.
     * @param input Portfolio ids
@@ -45,7 +137,7 @@ object MapReduce {
     * @param reducing Reducing function
     * @return Mapping from portfolio id to result list (only index zero has value)
     */
-  def basic (
+  def mapreduce(
               input: List[Int],
               mapping: Int => List[Result],
               reducing: (Int, List[Result]) => Result): Map[Int, Result] = {
@@ -76,7 +168,7 @@ object MapReduce {
     * @param numReducers Number of reducers
     * @return Map from portfolio id to a list of its values (actually only the first value)
     */
-  def coarse(
+  def mapreduceCoarse(
               input: List[Int],
               mapping: Int => List[Result],
               reducing: (Int, List[Result]) => Result,
@@ -113,6 +205,7 @@ object MapReduce {
     }
   }
 
+
   /**
     * Values the portfolios given all the portfolios and bonds have been loaded into memory.
     * @param input List of pairs of portfolio ids and bonds (not bond ids)
@@ -120,13 +213,13 @@ object MapReduce {
     * @param reducing Reducing function
     * @return Mapping from portfid -> value
     */
-  def memorybound(input: List[(Int, List[SimpleBond])],
-                                  mapping: (Int,List[SimpleBond]) => List[Result],
-                                  reducing: (Int,List[Result]) => Result): Map[Int, Result] = {
+  def mapreduceMemorybound(input: List[(Int, List[SimpleBond])],
+                  mapping: (Int,List[SimpleBond]) => List[Result],
+                  reducing: (Int,List[Result]) => Result): Map[Int, Result] = {
     case class Intermediate(portfId: Int, results: List[Result])
 
     val futures = for((portfId, bonds) <- input) yield Future {
-        Intermediate(portfId, mapping(portfId,bonds))
+      Intermediate(portfId, mapping(portfId,bonds))
     }
 
     val results = futures.foldLeft(Map[Int, Result]()) { (map, future) =>
@@ -147,9 +240,9 @@ object MapReduce {
     * @param reducing Reducing function
     * @return Mapping from portfid -> value
     */
-  def fine(input: List[(Int, Int)],
-                   mapping: (Int, Int) => Result,
-                   reducing: (Int,List[Result]) => Result): Map[Int, Result] = {
+  def mapreduceFine(input: List[(Int, Int)],
+           mapping: (Int, Int) => Result,
+           reducing: (Int,List[Result]) => Result): Map[Int, Result] = {
     case class Intermediate(portfId: Int, result: Result)
 
     // Pass 0: spawn the futures
@@ -193,9 +286,9 @@ object MapReduce {
     * @param reducing Reducing function
     * @return Mapping from portfid -> value
     */
-  def fine1(input: List[(Int, Int)],
-           mapping: (Int, Int) => Result,
-           reducing: (Int,List[Result]) => Result): Map[Int, Result] = {
+  def mapreduceFine1(input: List[(Int, Int)],
+            mapping: (Int, Int) => Result,
+            reducing: (Int,List[Result]) => Result): Map[Int, Result] = {
     case class Intermediate(portfId: Int, result: Result)
 
     val futures = for((portfId, bonds) <- input) yield Future {
@@ -219,7 +312,3 @@ object MapReduce {
     }
   }
 }
-
-
-
-

@@ -26,9 +26,9 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
-import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.{Helper, Result}
+import parascale.parabond.casa.{MongoDbObject, MongoHelper}
+import parascale.parabond.util.{Result}
+import parabond.mr._
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
@@ -46,12 +46,6 @@ object Mr04 {
  * @author Ron Coleman, Ph.D.
  */
 class Mr04 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-
-  /** Connects to the parabond DB */
-  val mongo = MongoConnection(MongoHelper.getHost)("parabond")
-
   /** Initialize the random number generator */
   val ran = new Random(0)
 
@@ -105,11 +99,7 @@ class Mr04 {
 
     // Map-reduce the input
     val t0 = System.nanoTime
-
-//    val resultsUnsorted = MapReduce.coarse(input, mapping, reducing,numCores,numCores)
-    val resultsUnsorted = MapReduce.fine(inputs, mapping, reducing)
-
-
+    val resultsUnsorted = mapreduceFine(inputs, mapping, reducing)
     val t1 = System.nanoTime
 
     // Generate the output report
@@ -156,48 +146,5 @@ class Mr04 {
     os.close
 
     println(me+" DONE! %d %7.4f".format(n,dtN))
-  }
-
-  /**
-   * Maps a portfolio to a single price
-   * @param portfId Portfolio id
-   * @param bondId Bond id for the specified portfolio id
-   * @return List of (portf id, bond value))
-   */
-  def mapping(portfId: Int, bondId: Int): Result = {
-    val t0 = System.nanoTime
-
-    val bondsCollection = mongo("Bonds")
-
-    val bondQuery = MongoDbObject("id" -> bondId)
-
-    val bondCursor = bondsCollection.find(bondQuery)
-
-    val bond = MongoHelper.asBond(bondCursor)
-
-    val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
-
-    val price = valuator.price
-
-    val t1 = System.nanoTime
-
-    Result(portfId, price, 1 , t0, t1)
-  }
-
-  /**
-   * Reduces bond prices to a single portfolio price.
-   * @param portfId Portfolio id
-   * @param valuations Bond valuations
-   * @return List of portfolio valuation, one per portfolio
-   */
-  def reducing(portfId: Int, valuations: List[Result]): Result = {
-    val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
-
-      val t0 = Math.min(composite.t0, result.t0)
-      val t1 = Math.max(composite.t1, result.t1)
-
-      Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
-    }
-    total
   }
 }
