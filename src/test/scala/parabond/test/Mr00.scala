@@ -36,12 +36,11 @@ object Mr00 {
 }
 
 /**
- * This class runs a mapreduce unit test for a limted number portfolios in the parabond database.
+ * This class runs a mapreduce unit test for a limited number portfolios in the parabond database.
  * @author Ron Coleman
  */
 class Mr00 {
-
-  
+  /** Executes test */
   def test {
     // Create the input of a list of Tuple2(portf id, curve coefficients).
     val input = (1 to 4).foldLeft(List[Int]()) { (list, p) =>

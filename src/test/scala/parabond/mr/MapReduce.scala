@@ -28,7 +28,6 @@ package parascale.parabond.mr
 
 import parascale.parabond.entry.SimpleBond
 import parascale.parabond.util.Result
-
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._

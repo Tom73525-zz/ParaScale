@@ -36,4 +36,4 @@ case class Result(portfId: Int, value: Double, bondCount: Int, t0: Long, t1: Lon
 /**
  * Data object used for input and output
  */
-case class Data(portfId: Int, bonds:List[SimpleBond], result: Result)
+case class Data(portfId: Int, bonds: List[SimpleBond], result: Result)

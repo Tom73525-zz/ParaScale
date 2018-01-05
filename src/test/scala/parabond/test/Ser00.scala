@@ -27,9 +27,12 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.Helper
+import parascale.parabond.util.{Helper, Result}
+
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
+import parascale.util._
+import parabond.mr.PORTF_NUM
 
 /** Test driver */
 object Ser00 {
@@ -43,24 +46,13 @@ object Ser00 {
  * @author Ron Coleman, Ph.D.
  */
 class Ser00 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-  
   /** Initialize the random number generator */
   val ran = new Random(0)  
-  
-  /** Write a detailed report */
-  val details = true
-  
-  /** Record captured with each result */
-  case class Result(id: Int, price: Double, bondCount: Int, t0: Long, t1: Long)
 
   def test {  
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+    val n = getPropertyOrDefault("n",PORTF_NUM)
+
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
     
@@ -71,20 +63,18 @@ class Ser00 {
     
     val details = if(System.getProperty("details") != null) true else false
     
-    val input = (1 to n).foldLeft(List[(Int,List[Double])]()) { (list, p) =>
+    val input = (1 to n).foldLeft(List[Int]()) { (list, p) =>
       val r = ran.nextInt(100000)+1
-      list ::: List((r,Helper.curveCoeffs))
+      list ::: List(r)
     }    
     
-    val now = System.nanoTime
+    val t0 = System.nanoTime
     
-    val results = input.foldLeft(List[Result]()) { (sum, p) =>  
+    val results = input.foldLeft(List[Result]()) { (sum, portfId) =>
       // Value each bond in the portfolio
       val t0 = System.nanoTime
 
-      // Retrieve the portfolio 
-      val (portfId, coeffs) = p
-      
+      // Retrieve the portfolio
       val portfsQuery = MongoDbObject("id" -> portfId)
 
       val portfsCursor = MongoHelper.portfCollection.find(portfsQuery)
@@ -93,7 +83,6 @@ class Ser00 {
       val bondIds = MongoHelper.asList(portfsCursor, "instruments")
 
       val value = bondIds.foldLeft(0.0) { (sum, id) =>
-        
         // Get the bond from the bond collection
         val bondQuery = MongoDbObject("id" -> id)
 
@@ -110,7 +99,7 @@ class Ser00 {
         sum + price
       }
       
-      MongoHelper.updatePrice(portfId,value)
+      MongoHelper.updatePrice(portfId, value)
       
       val t1 = System.nanoTime
       
@@ -124,15 +113,15 @@ class Ser00 {
       println("%6s %10.10s %-5s %-2s".format("PortId", "Price", "Bonds", "dt"))
 
       results.reverse.foreach { result =>
-        val id = result.id
+        val id = result.portfId
 
         val dt = (result.t1 - result.t0) / 1000000000.0
 
         val bondCount = result.bondCount
 
-        val price = result.price
+        val price = result.value
 
-        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - now, result.t0 - now))
+        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, result.t1 - t0, result.t0 - t0))
       }
     }
     
@@ -142,7 +131,7 @@ class Ser00 {
     } / 1000000000.0
     
     
-    val dtN = (t1 - now) / 1000000000.0
+    val dtN = (t1 - t0) / 1000000000.0
     
     val speedup = dt1 / dtN
     

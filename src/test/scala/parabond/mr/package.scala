@@ -3,9 +3,9 @@ package parabond
 import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
 import parascale.parabond.entry.SimpleBond
 import parascale.parabond.util.{Helper, Result}
-
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import parascale.parabond.value.SimpleBondValuator
 
 package object mr {
@@ -21,7 +21,6 @@ package object mr {
     * @return List of (portf id, bond value))
     */
   def mapping(portfId: Int): List[Result] = {
-
     val portfsCollecton = mongo("Portfolios")
 
     val portfsQuery = MongoDbObject("id" -> portfId)
@@ -41,8 +40,6 @@ package object mr {
 
       val bond = MongoHelper.asBond(bondsCursor)
 
-      //      print("bond(" + bond + ") = ")
-
       val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
       val price = valuator.price
@@ -50,9 +47,10 @@ package object mr {
       sum + price
     }
 
-    val entry = MongoDbObject("id" -> portfId, "instruments" -> bondIds, "value" -> value)
+//    val entry = MongoDbObject("id" -> portfId, "instruments" -> bondIds, "value" -> value)
+//    mongo("Portfolios").insertOne(entry)
 
-    mongo("Portfolios").insertOne(entry)
+    MongoHelper.updatePrice(portfId,value)
 
     val t1 = System.nanoTime
 
@@ -82,11 +80,13 @@ package object mr {
 
       val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
-      val price = valuator.price
+      val value = valuator.price
+
+      // DO NOT UPDATE PORTFOLIO VALUE -- this is a single bond
 
       val t1 = System.nanoTime
 
-      Result(portfId, price, 1 , t0, t1)
+      Result(portfId, value, 1 , t0, t1)
     }
 
   /**
@@ -106,9 +106,9 @@ package object mr {
       sum + price
     }
 
-    val t1 = System.nanoTime
-
     MongoHelper.updatePrice(portfId,price)
+
+    val t1 = System.nanoTime
 
     List(Result(portfId,price,bonds.size,t0,t1))
   }
@@ -117,21 +117,28 @@ package object mr {
       * Reduces bond prices to a single portfolio price.
       * @param portfId Portfolio id
       * @param valuations Bond valuations
-      * @return List of portfolio valuation, one per portfolio
+      * @return List of portfolio valuation, one set per portfolio
       */
     def reducing(portfId: Int, valuations: List[Result]): Result = {
       val total = valuations.foldLeft(Result(portfId,0,0,Int.MaxValue,Int.MinValue)) { (composite, result) =>
 
-        val t0 = Math.min(composite.t0, result.t0)
-        val t1 = Math.max(composite.t1, result.t1)
+        val t0_ = Math.min(composite.t0, result.t0)
+        val t1_ = Math.max(composite.t1, result.t1)
 
-        Result(portfId, composite.value+result.value, composite.bondCount+1, t0, t1)
+        Result(portfId, composite.value+result.value, composite.bondCount+1, t0_, t1_)
       }
-      total
+
+      // NOTE: this might be a bug if the valuations are incomplete--
+      // thus, this method should not be used for parallel collections.
+      MongoHelper.updatePrice(portfId, total.value)
+
+      val now = System.nanoTime
+
+      Result(portfId,total.value,total.bondCount,total.t0, now)
     }
 
   /**
-    * Maps a portfolio to its value using trivial reduction.
+    * Maps a portfolio to its value.
     * @param input Portfolio ids
     * @param mapping Mapping function
     * @param reducing Reducing function

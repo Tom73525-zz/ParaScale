@@ -31,6 +31,8 @@ import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
+import parabond.mr.PORTF_NUM
+import parascale.util._
 
 /** Test driver */
 object Par04 {
@@ -45,26 +47,16 @@ object Par04 {
  * @author Ron Coleman, Ph.D.
  */
 class Par04 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-  
   /** Initialize the random number generator */
   val ran = new Random(0)   
   
   /** Write a detailed report */
   val details = false
-  
-  /** Record captured with each result */
-  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
-  
-  case class Data(portfId: Int, bonds:List[SimpleBond], result: Result)
-  
+
   def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+    val n = getPropertyOrDefault("n",PORTF_NUM)
+
     var me =  this.getClass().getSimpleName()
     var outFile = me + "-dat.txt"
     
@@ -72,58 +64,63 @@ class Par04 {
     var os = new java.io.PrintStream(fos)
     
     os.print(me+" "+ "N: "+n+" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
-    
-    // Build the portfolio list 
-        
-    val numCores = Runtime.getRuntime().availableProcessors()
-    
-    val coarseInputs = (1 to numCores).foldLeft(List[List[Data]]()) { (xs,x) =>
-          val inputs = for(i <- 0 until (n / numCores)) yield Data(ran.nextInt(100000)+1,null, null) 
-          
-//          println("inner inputs sz = "+inputs.size+" "+inputs.getClass())
-         
-          inputs.toList :: xs 
+
+    val details = getPropertyOrDefault("details",parseBoolean,false)
+
+    val numCores = Runtime.getRuntime.availableProcessors
+
+    // Build a list the size of the number of cores of portfolio lists
+    // Each core will get n/num_cores blocks of portfolios to price
+    val blocks = (1 to numCores).foldLeft(List[List[Data]]()) { (portfs, x) =>
+      // Build a list of portfolios
+      val portf = for(i <- 0 until (n / numCores)) yield Data(ran.nextInt(100000)+1,null, null)
+
+      // portf is a list added as a list element to (not merged with!) the portfs list
+      portf.toList :: portfs
     }
     
     // Build the portfolio list
     val t0 = System.nanoTime
-    val results = coarseInputs.par.map(priced) 
+    val results = blocks.par.map(price)
     val t1 = System.nanoTime
-    
+
     // Generate the output report
     if(details)
       println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
-    
+
     val dt1 = results.foldLeft(0.0) { (sum,result) =>
       result.foldLeft(0.0) { (sm,rslt) =>
         sm + (rslt.result.t1 - rslt.result.t0)
       } + sum
     } / 1000000000.0
-    
+
     val dtN = (t1 - t0) / 1000000000.0
-    
+
     val speedup = dt1 / dtN
 
-    
+
     val e = speedup / numCores
-    
+
     os.println("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
-        format(dt1,dtN,numCores,speedup,e))  
-    
+        format(dt1,dtN,numCores,speedup,e))
+
     os.flush
-    
+
     os.close
-    
-    println(me+" DONE! %d %7.4f".format(n,dtN))      
+
+    println(me+" DONE! %d %7.4f".format(n,dtN))
   }
-  
-  def priced(inputs: List[Data]) : List[Data] = {   
-    val outputs = inputs.foldLeft(List[Data]()) { (xs, x) =>
+
+  /**
+    * Price a collection of portfolios.
+    * @param portfs Portfolios
+    * @return Collection of priced portfolios
+    */
+  def price(portfs: List[Data]) : List[Data] = {
+    val outputs = portfs.foldLeft(List[Data]()) { (results, portf) =>
       val t0 = System.nanoTime
       
-      val portfId = x.portfId
+      val portfId = portf.portfId
       
       val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -132,7 +129,9 @@ class Par04 {
       // Get the bonds ids in the portfolio
       val bondIds = MongoHelper.asList(portfsCursor,"instruments")
     
-      // Price each bond and sum all the prices
+      // Price each bond and sum all the prices--
+      // we could parallel process these using parallel collection which
+      // is done by Par05.
       val value = bondIds.foldLeft(0.0) { (sum, id) =>
         // Get the bond from the bond collection
         val bondQuery = MongoDbObject("id" -> id)
@@ -154,7 +153,7 @@ class Par04 {
       
       val t1 = System.nanoTime
     
-      Data(portfId,null,Result(portfId,value,bondIds.size,t0,t1)) :: xs     
+      Data(portfId,null,Result(portfId,value,bondIds.size,t0,t1)) :: results
     }
  
     outputs

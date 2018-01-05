@@ -27,10 +27,13 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.util.Helper
+import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
+
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
+import parascale.util._
+import parabond.mr.PORTF_NUM
 
 /** Test driver */
 object Par06 {
@@ -45,26 +48,13 @@ object Par06 {
  * @author Ron Coleman, Ph.D.
  */
 class Par06 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-  
   /** Initialize the random number generator */
   val ran = new Random(0)   
-  
-  /** Write a detailed report */
-  val details = false
-  
-  /** Record captured with each result */
-  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
-  
-  case class Data(portfId: Int, bonds:List[SimpleBond], result: Result)
-  
+
   def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+    val n = getPropertyOrDefault("n",PORTF_NUM)
+
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
     
@@ -72,8 +62,8 @@ class Par06 {
     val os = new java.io.PrintStream(fos)
     
     os.print(me+" "+ "N: "+n+" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
+
+    val details = getPropertyOrDefault("details",parseBoolean,false)
     
     // Load all the bonds into into memory
     // Note: the input is a list of Data instances, each element of which contains a list
@@ -84,76 +74,76 @@ class Par06 {
     
     // Build the portfolio list
     val t0 = System.nanoTime
-    val results = inputs.par.map(priced)
+    val results = inputs.par.map(price)
     val t1 = System.nanoTime
-    
+
     // Generate the detailed output report
     if(details) {
       println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
-      
+
       results.foreach { output =>
-        val id = output.result.id
+        val id = output.result.portfId
 
         val dt = (output.result.t1 - output.result.t0) / 1000000000.0
 
         val bondCount = output.result.bondCount
 
-        val price = output.result.price
+        val price = output.result.value
 
         println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - t0, output.result.t0 - t0))
       }
     }
-    
+
     val dt1 = results.foldLeft(0.0) { (sum,result) =>
       sum + (result.result.t1 - result.result.t0)
-      
+
     } / 1000000000.0
-    
+
     val dtN = (t1 - t0) / 1000000000.0
-    
+
     val speedup = dt1 / dtN
-    
+
     val numCores = Runtime.getRuntime().availableProcessors()
-    
+
     val e = speedup / numCores
-    
+
     os.print("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
-        format(dt1,dtN,numCores,speedup,e))  
-    
-    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0)) 
-    
+        format(dt1,dtN,numCores,speedup,e))
+
+    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0))
+
     os.flush
-    
+
     os.close
-    
-    println(me+" DONE! %d %7.4f".format(n,dtN))       
+
+    println(me+" DONE! %d %7.4f".format(n,dtN))
   }
-  
-  def priced(input: Data): Data = {
-    
+
+  def price(portf: Data): Data = {
+
     // Value each bond in the portfolio
     val t0 = System.nanoTime
-   
+
 //    val bondIds = asList(portfsCursor,"instruments")
-    val bonds = input.bonds
-    
-    val output = input.bonds.par.map { bond =>
-      val t0 = System.nanoTime 
-      
+    val bonds = portf.bonds
+
+    val output = portf.bonds.par.map { bond =>
+      val t0 = System.nanoTime
+
       val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
       val price = valuator.price
-      
+
       val t1 = System.nanoTime
-      
-      new SimpleBond(bond.id,bond.coupon,bond.freq,bond.tenor,price)     
+
+      new SimpleBond(bond.id,bond.coupon,bond.freq,bond.tenor,price)
     }.par.reduce(sum)
-    
-    MongoHelper.updatePrice(input.portfId,output.maturity) 
-    
+
+    MongoHelper.updatePrice(portf.portfId,output.maturity)
+
     val t1 = System.nanoTime
-    
-    Data(input.portfId,null,Result(input.portfId,output.maturity,input.bonds.size,t0,t1))
+
+    Data(portf.portfId,null,Result(portf.portfId,output.maturity,portf.bonds.size,t0,t1))
   }  
 
   def sum(a: SimpleBond, b:SimpleBond) : SimpleBond = {

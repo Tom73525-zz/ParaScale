@@ -30,6 +30,7 @@ import scala.util.Random
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
+import parascale.util._
 
 /** Test driver */
 object Par00 {
@@ -52,14 +53,12 @@ class Par00 {
   
   /** Write a detailed report */
   val details = true
-  
+
   /** Runs the test */
   def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+    val n = getPropertyOrDefault("n",PORTF_NUM)
+
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
     
@@ -67,26 +66,24 @@ class Par00 {
     val os = new java.io.PrintStream(fos)
     
     os.print(me+" "+ "N: "+n+" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
-    
+
+    val details = getPropertyOrDefault("details",parseBoolean,false)
+
     // Build the portfolio list    
     val inputs = for(i <- 0 until n) yield Data(ran.nextInt(100000)+1,null,null)    
     
     val list = inputs.toList
    
     // Parallel map the input
-    val now = System.nanoTime  
-    
-    val outputs = inputs.par.map(price) 
-    
+    val t0 = System.nanoTime
+    val results = inputs.par.map(price)
     val t1 = System.nanoTime
     
     // Generate the detailed output report
     if(details) {
       println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
       
-      outputs.foreach { output =>
+      results.foreach { output =>
         val id = output.portfId
 
         val dt = (output.result.t1 - output.result.t0) / 1000000000.0
@@ -95,16 +92,16 @@ class Par00 {
 
         val price = output.result.value
 
-        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - now, output.result.t0 - now))
+        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - t0, output.result.t0 - t0))
       }
     }
 
-    val dt1 = outputs.foldLeft(0.0) { (sum, output) =>
+    val dt1 = results.foldLeft(0.0) { (sum, output) =>
       sum + (output.result.t1 - output.result.t0)
 
     } / 1000000000.0
     
-    val dtN = (t1 - now) / 1000000000.0
+    val dtN = (t1 - t0) / 1000000000.0
     
     val speedup = dt1 / dtN
     

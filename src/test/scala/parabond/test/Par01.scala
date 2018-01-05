@@ -29,6 +29,8 @@ package parascale.parabond.test
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
+import parascale.util.{getPropertyOrDefault, parseBoolean}
+
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import scala.concurrent.{Await, Future}
@@ -58,10 +60,8 @@ class Par01 {
   
   def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+    val n = getPropertyOrDefault("n",PORTF_NUM)
+
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
     
@@ -69,8 +69,8 @@ class Par01 {
     val os = new java.io.PrintStream(fos)
     
     os.print(me+" "+ "N: "+n+" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
+
+    val details = getPropertyOrDefault("details",parseBoolean,false)
     
     // Load all the bonds into into memory
     // Note: the input is a list of Data instances, each element of which contains a list
@@ -80,15 +80,15 @@ class Par01 {
     val t3 = System.nanoTime   
     
     // Process the data
-    val now = System.nanoTime  
-    val outputs = inputs.par.map(priced)     
+    val t0 = System.nanoTime
+    val results = inputs.par.map(price)
     val t1 = System.nanoTime
-    
+
     // Generate the detailed output report
     if(details) {
       println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
-      
-      outputs.foreach { output =>
+
+      results.foreach { output =>
         val id = output.portfId
 
         val dt = (output.result.t1 - output.result.t0) / 1000000000.0
@@ -97,40 +97,40 @@ class Par01 {
 
         val price = output.result.value
 
-        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - now, output.result.t0 - now))
+        println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - t0, output.result.t0 - t0))
       }
     }
-    
-    val dt1 = outputs.foldLeft(0.0) { (sum,result) =>      
+
+    val dt1 = results.foldLeft(0.0) { (sum,result) =>
       sum + (result.result.t1 - result.result.t0)
-      
+
     } / 1000000000.0
-    
-    val dtN = (t1 - now) / 1000000000.0
-    
+
+    val dtN = (t1 - t0) / 1000000000.0
+
     val speedup = dt1 / dtN
-    
+
     val numCores = Runtime.getRuntime().availableProcessors()
-    
+
     val e = speedup / numCores
 
     os.print("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
-        format(dt1,dtN,numCores,speedup,e))     
-    
-    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0))   
-    
+        format(dt1,dtN,numCores,speedup,e))
+
+    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0))
+
     os.flush
-    
+
     os.close
-    
-    println(me+" DONE! %d %7.4f".format(n,dtN))        
+
+    println(me+" DONE! %d %7.4f".format(n,dtN))
   }
-  
+
   /**
    * Prices a portfolio assuming all the bonds for a portfolio are already loaded
    * into memory.
    */
-  def priced(portf: Data): Data = {
+  def price(portf: Data): Data = {
     
     // Value each bond in the portfolio
     val t0 = System.nanoTime

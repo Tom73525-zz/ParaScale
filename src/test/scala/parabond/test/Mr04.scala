@@ -27,11 +27,12 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Result}
+import parascale.parabond.util.Result
 import parabond.mr._
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
+import parascale.util.{getPropertyOrDefault, parseBoolean}
 
 /** Test driver */
 object Mr04 {
@@ -41,10 +42,10 @@ object Mr04 {
 }
 
 /**
- * This class runs a map-reduce unit test for n portfolios in the
- * parabond database. It uses one bond per actor.
- * @author Ron Coleman, Ph.D.
- */
+  * This class runs a fine-grain mapreduce for arbitrary number of portfolios in the parabond database.
+  * Namely, it tries to parallelize single bonds.
+  * @author Ron Coleman
+  */
 class Mr04 {
   /** Initialize the random number generator */
   val ran = new Random(0)
@@ -57,9 +58,7 @@ class Mr04 {
   /** Unit test entry point */
   def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-
-    val n = if(arg == null) PORTF_NUM else arg.toInt
+    val n = getPropertyOrDefault("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
@@ -69,7 +68,7 @@ class Mr04 {
 
     os.print(me+" "+ "N: "+n+" ")
 
-    val details = if(System.getProperty("details") != null) true else false
+    val details = getPropertyOrDefault("details",parseBoolean,false)
 
     // Build the portfolio list
     // Connect to the portfolio collection

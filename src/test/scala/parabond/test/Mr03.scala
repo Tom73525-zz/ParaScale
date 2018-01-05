@@ -26,10 +26,11 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoHelper}
+import parascale.parabond.casa.MongoHelper
 import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.{Result}
-import parabond.mr._
+import parascale.parabond.util.Result
+import parabond.mr.{PORTF_NUM, _}
+import parascale.util.{getPropertyOrDefault, parseBoolean}
 
 /** Test driver */
 object Mr03 {
@@ -39,7 +40,8 @@ object Mr03 {
 }
 
 /**
-  * This class runs a memorybound mapreduce for arbitrary number of portfolios in the parabond database.
+  * This class runs a memory-bound mapreduce for arbitrary number of portfolios in the parabond database.
+  * Namely, it tries to parallelize a group of portfolios on a single core.
   * @author Ron Coleman
   */
 class Mr03 {
@@ -52,9 +54,7 @@ class Mr03 {
   /** Unit test entry point */
   def test {      
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-
-    val n = if (arg == null) PORTF_NUM else arg.toInt
+    val n = getPropertyOrDefault("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
@@ -62,9 +62,9 @@ class Mr03 {
     val fos = new java.io.FileOutputStream(outFile,true)
     val os = new java.io.PrintStream(fos)
     
-    os.print(me+" "+ "N: "+n+" ")  
+    os.print(me+" "+ "N: "+n+" ")
 
-    val details = if (System.getProperty("details") != null) true else false
+    val details = getPropertyOrDefault("details",parseBoolean,false)
 
     val t2 = System.nanoTime
     val input = MongoHelper.loadPortfsParallel(n)

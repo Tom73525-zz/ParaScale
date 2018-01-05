@@ -27,6 +27,13 @@ package object util {
   }
 
   /**
+    * Parses a boolean string.
+    * @param s String
+    * @return True if "true" and false otherwise
+    */
+  def parseBoolean(s: String): Boolean = if(s == "true") true else false
+
+  /**
     * Convenience method for sleeping.
     * @param millis Time in milliseconds to sleep
     */

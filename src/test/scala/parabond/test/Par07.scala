@@ -31,6 +31,8 @@ import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
+import parascale.util._
+import parabond.mr.PORTF_NUM
 
 /** Test driver */
 object Par07 {
@@ -45,26 +47,17 @@ object Par07 {
  * @author Ron Coleman, Ph.D.
  */
 class Par07 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-  
   /** Initialize the random number generator */
   val ran = new Random(0)   
   
   /** Write a detailed report */
   val details = false
-  
-  /** Record captured with each result */
-  case class Result(id : Int, price: Double, bondCount: Int, t0: Long, t1: Long)
-  
-  case class Data(portfId: Int, bonds:List[SimpleBond], result: Result)
-  
+
+  /** Runs unit test */
   def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+    val n = getPropertyOrDefault("n",PORTF_NUM)
+
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
     
@@ -72,8 +65,8 @@ class Par07 {
     val os = new java.io.PrintStream(fos)
     
     os.print(me+" "+ "N: "+n+" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
+
+    val details = getPropertyOrDefault("details",parseBoolean,false)
     
     // Build the portfolio list 
         
@@ -86,12 +79,12 @@ class Par07 {
     }
     
     val t2 = System.nanoTime
-    val chunks = coarseInputs.par.map(loadChunk)
+    val blocks = coarseInputs.par.map(loadChunk)
     val t3 = System.nanoTime     
 
     // Build the portfolio list
     val t0 = System.nanoTime
-    val results = chunks.par.map(price) 
+    val results = blocks.par.map(price)
     val t1 = System.nanoTime
     
     // Generate the output report
@@ -108,7 +101,6 @@ class Par07 {
     
     val speedup = dt1 / dtN
 
-    
     val e = speedup / numCores
     
     os.print("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
@@ -122,14 +114,19 @@ class Par07 {
     
     println(me+" DONE! %d %7.4f".format(n,dtN))      
   }
-  
-  def price(inputs: List[Data]) : List[Data] = {   
-    val outputs = inputs.foldLeft(List[Data]()) { (xs, input) =>
+
+  /**
+    * Prices a collection of portfolios.
+    * @param portfs
+    * @return Valuations
+    */
+  def price(portfs: List[Data]) : List[Data] = {
+    val outputs = portfs.foldLeft(List[Data]()) { (results, portf) =>
       val t0 = System.nanoTime
     
-      val portfId = input.portfId
+      val portfId = portf.portfId
     
-      val bonds = input.bonds
+      val bonds = portf.bonds
     
       // Price each bond and sum all the prices
       val value = bonds.foldLeft(0.0) { (sum, bond) =>    
@@ -146,7 +143,7 @@ class Par07 {
       
       val t1 = System.nanoTime
     
-      Data(portfId,null,Result(portfId,value,bonds.size,t0,t1)) :: xs     
+      Data(portfId,null,Result(portfId,value,bonds.size,t0,t1)) :: results
     }
  
     outputs

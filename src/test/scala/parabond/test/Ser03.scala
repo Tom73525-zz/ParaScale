@@ -35,7 +35,7 @@ import parascale.parabond.value.SimpleBondValuator
 import scala.util.Random
 
 /** Test driver */
-object Ser103 {
+object Ser03 {
   def main(args: Array[String]): Unit = {
     new Ser03 test
   }

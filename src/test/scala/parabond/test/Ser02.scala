@@ -29,7 +29,7 @@ package parascale.parabond.test
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
-
+import parabond.mr.PORTF_NUM
 import scala.util.Random
 
 /** Test driver */
@@ -44,15 +44,10 @@ object Ser02 {
  * @author Ron Coleman, Ph.D.
  */
 class Ser02 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-  
   /** Initialize the random number generator */
   val ran = new Random(0)   
-  
-  /** Write a detailed report */
-  val details = false
-  
+
+  /** Runs unit test */
   def test {
     // Set the number of portfolios to analyze
     val arg = System.getProperty("n")
@@ -126,12 +121,12 @@ class Ser02 {
   /**
    * Prices a portfolio using the "basic" algorithm.
    */
-  def price(input: Data): Data = {
+  def price(portf: Data): Data = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
-    
-    // Retrieve the portfolio 
-    val portfId = input.portfId
+
+    // Retrieve the portfolio
+    val portfId = portf.portfId
     
     val portfsQuery = MongoDbObject("id" -> portfId)
 

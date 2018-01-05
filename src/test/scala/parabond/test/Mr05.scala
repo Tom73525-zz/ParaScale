@@ -31,6 +31,7 @@ import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parabond.mr._
+import parascale.util._
 
 /** Test driver */
 object Mr05 {
@@ -41,7 +42,7 @@ object Mr05 {
 
 /**
  * This class runs a mapreduce unit test for n portfolios in the
- * parabond database. It alternates between parallel and serial methods.
+ * parabond database, alternating between parallel and serial methods.
  * @author Ron Coleman, Ph.D.
  */
 class Mr05 {
@@ -53,29 +54,24 @@ class Mr05 {
   
   /** Unit test entry point */
   def test {
-    // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+    val n = getPropertyOrDefault("n",PORTF_NUM)
+
     print("\n"+this.getClass()+" "+ "N: "+n +" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
-        
+
     (1 to n).foreach { p =>
       // Choose a random portfolio
-      val lottery = ran.nextInt(100000)+1 
+      val portfId = ran.nextInt(100000)+1
 
       val results = new Array[Result](2)
       
       // Evaluate the portfolios in random order
-      if(lottery %2 == 0) {
-        results(0) = priceParallel(lottery)
-        results(1) = priceSerially(lottery)
+      if(portfId %2 == 0) {
+        results(0) = priceParallel(portfId)
+        results(1) = priceSerially(portfId)
       }
       else {
-        results(1) = priceSerially(lottery)         
-        results(0) = priceParallel(lottery)
+        results(1) = priceSerially(portfId)
+        results(0) = priceParallel(portfId)
       }
       
       val dt0 = (results(0).t1 - results(0).t0) / 1000000000.0

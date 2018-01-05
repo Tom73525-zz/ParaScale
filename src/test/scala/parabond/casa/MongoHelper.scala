@@ -54,7 +54,7 @@ object MongoHelper {
   /** Initialize the random number generator */
   val ran = new Random(0)
   
-  case class Intermediate(portfId: Int, list : List[SimpleBond])  
+  case class Intermediate(portfId: Int, list: List[SimpleBond])
   case class Intermediate2(bonds: List[SimpleBond])
   
   /**

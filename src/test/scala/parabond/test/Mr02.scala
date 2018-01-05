@@ -27,8 +27,10 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Result}
+import parascale.parabond.util.Result
 import parabond.mr._
+import parascale.util.{getPropertyOrDefault, parseBoolean}
+
 import scala.util.Random
 
 /** Test driver */
@@ -39,13 +41,10 @@ object Mr02 {
 }
 
 /**
-  * This class runs a coarse mapreduce for arbitrary number of portfolios in the parabond database.
+  * This class runs a coarse-grain mapreduce for arbitrary number of portfolios in the parabond database.
   * @author Ron Coleman
  */
 class Mr02 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-
   /** Initialize the random number generator */
   val ran = new Random(0)   
   
@@ -58,19 +57,18 @@ class Mr02 {
   /** Unit test entry point */
     def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
+    val n = getPropertyOrDefault("n",PORTF_NUM)
     
     val me =  this.getClass().getSimpleName()
+
     val outFile = me + "-dat.txt"
     
     val fos = new java.io.FileOutputStream(outFile,true)
     val os = new java.io.PrintStream(fos)
     
-    os.print(me+" "+ "N: "+n+" ") 
-    
-    val details = if(System.getProperty("details") != null) true else false
+    os.print(me+" "+ "N: "+n+" ")
+
+      val details = getPropertyOrDefault("details",parseBoolean,false)
     
     // Build the portfolio list
     val input = (1 to n).foldLeft(List[Int]()) { (list, p) =>
