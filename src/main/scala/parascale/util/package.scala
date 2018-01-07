@@ -1,6 +1,21 @@
 package parascale
 
 package object util {
+
+  /**
+    * Parses a boolean string.
+    * @param s String
+    * @return True if "true" and false otherwise
+    */
+  def parseBoolean(s: String): Boolean = if(s == "true") true else false
+
+  /**
+    * Parses a string
+    * @param s String
+    * @return String
+    */
+  def parseString(s: String) = s
+
   /**
     * Gets an integer value from system properties, if it's not found use a default.
     * @param key Property
@@ -15,7 +30,7 @@ package object util {
     * @param parse Parser
     * @param default Default
     * @tparam T Parameterize type of value
-    * @return Default value
+    * @return Key-value or default value
     */
   def getPropertyOrDefault[T](key: String, parse: (String) => T, default: T): T = {
     val value = System.getProperty(key)
@@ -27,11 +42,12 @@ package object util {
   }
 
   /**
-    * Parses a boolean string.
-    * @param s String
-    * @return True if "true" and false otherwise
+    * Gets a system property or a default value
+    * @param key Property
+    * @param default Default
+    * @return Key-value or default value
     */
-  def parseBoolean(s: String): Boolean = if(s == "true") true else false
+  def getPropertyOrDefault(key: String, default: String): String = getPropertyOrDefault(key,parseString,default)
 
   /**
     * Convenience method for sleeping.

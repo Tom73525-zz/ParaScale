@@ -31,6 +31,7 @@ import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util._
+import parabond.mr.PORTF_NUM
 
 /** Test driver */
 object Par00 {
@@ -45,9 +46,6 @@ object Par00 {
  * @author Ron Coleman
  */
 class Par00 {
-  /** Number of bond portfolios to analyze */
-  val PORTF_NUM = 100
-  
   /** Initialize the random number generator */
   val ran = new Random(0)   
   
@@ -131,7 +129,7 @@ class Par00 {
     
     val portfsQuery = MongoDbObject("id" -> portfId)
 
-    val portfsCursor = MongoHelper.portfCollection.find(portfsQuery)
+    val portfsCursor = MongoHelper.portfolioCollection.find(portfsQuery)
     
     // Get the bonds ids in the portfolio
     val bondIds = MongoHelper.asList(portfsCursor,"instruments")

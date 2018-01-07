@@ -30,12 +30,12 @@ import java.util.logging.{Level, Logger}
 
 import com.mongodb.client.FindIterable
 import org.bson.Document
-
 import scala.util.Random
 import parascale.parabond.util.{Constant, Data}
 import parascale.parabond.entry.SimpleBond
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import parascale.util.getPropertyOrDefault
 
 /**
  * This object implements monngo-specific helper functions.
@@ -48,31 +48,31 @@ object MongoHelper {
   /** Connects to the parabond DB */
   val mongo = parascale.parabond.casa.MongoConnection(host)("parabond")
   
-  val portfCollection = mongo("Portfolios")
+  val portfolioCollection = mongo("Portfolios")
   val bondCollection = mongo("Bonds")
-  
+
   /** Initialize the random number generator */
   val ran = new Random(0)
-  
+
   case class Intermediate(portfId: Int, list: List[SimpleBond])
   case class Intermediate2(bonds: List[SimpleBond])
-  
+
   /**
    * Loads a list of 2-tuples of portfolios x list of bonds
    */
   def loadPortfs(n : Int) : List[(Int,List[SimpleBond])] = {
     // Connect to the portfolio collection
     val portfsCollecton = mongo("Portfolios")
-    
+
     val input = (1 to n).foldLeft(List[(Int,List[SimpleBond])] ()) { (list, pid) =>
       // Select a portfolio
-      val lottery = ran.nextInt(100000) + 1      
+      val lottery = ran.nextInt(100000) + 1
 
-      // Retrieve the portfolio 
+      // Retrieve the portfolio
       val portfsQuery = MongoDbObject("id" -> lottery)
-      
+
       val portfsCursor = portfsCollecton.find(portfsQuery)
-      
+
       // Get the bonds in the portfolio
       val bondIds = MongoHelper.asList(portfsCursor, "instruments")
 
@@ -86,11 +86,11 @@ object MongoHelper {
 
         // The price into the aggregate sum
         bonds ++ List(bond)
-      } 
-    
+      }
+
       list ++ List((lottery,bonds))
     }
-    
+
     input
   }
 
@@ -116,27 +116,27 @@ object MongoHelper {
 
     list
   }
-  
+
   /**
    * Loads portfolios x bonds into memory
    */
-  def loadPortfsPar(n: Int): List[(Int,List[SimpleBond])] = {  
-    val lotteries = for(i <- 0 to n) yield ran.nextInt(100000)+1 
-    
+  def loadPortfsPar(n: Int): List[(Int,List[SimpleBond])] = {
+    val lotteries = for(i <- 0 to n) yield ran.nextInt(100000)+1
+
     val list = lotteries.par.foldLeft (List[(Int,List[SimpleBond])]())
     { (portfIdBonds,portfId) =>
       val intermediate = fetchBonds(portfId)
-      
+
       (portfId,intermediate.list) :: portfIdBonds
     }
-    
+
     list
-  }  
-  
+  }
+
   /** Converts mongo cursor to scala list of int objects */
   def asList(results: FindIterable[Document], field: String): List[Int] = {
     val cursor = results.iterator
-    
+
     if (cursor.hasNext) {
       val value = cursor.next().get(field)
 
@@ -153,44 +153,44 @@ object MongoHelper {
     else
       List[Int]()
   }
-  
+
   /**
    * Converts the mongo cursor to a bond -- assuming the query cursor
    * as a single bond
    */
   def asBond(results: FindIterable[Document]) : SimpleBond = {
     val cursor = results.iterator
-    
+
     if(cursor.hasNext) {
       val bondParams = cursor.next()
-      
+
       val id = bondParams.get("id").toString.toInt
-      
+
       val coupon = bondParams.get("coupon").toString.toDouble
-      
+
       val freq = bondParams.get("freq").toString.toInt
-      
+
       val tenor = bondParams.get("tenor").toString.toDouble
-      
+
       val maturity= bondParams.get("maturity").toString.toDouble
-      
+
       SimpleBond(id,coupon,freq,tenor,maturity)
     }
     else
       SimpleBond()
   }
-  
+
   /**
     * Fetches the bonds from the database.
     * @param portfId Portfolio id
     * @return Container of portfolio id and bonds
     */
   def fetchBonds(portfId: Int): Intermediate = {
-      // Retrieve the portfolio 
+      // Retrieve the portfolio
       val portfsQuery = MongoDbObject("id" -> portfId)
-      
-      val portfsCursor = portfCollection.find(portfsQuery)
-      
+
+      val portfsCursor = portfolioCollection.find(portfsQuery)
+
       // Get the bonds in the portfolio
       val bondIds = MongoHelper.asList(portfsCursor, "instruments")
 
@@ -208,30 +208,41 @@ object MongoHelper {
         // The price into the aggregate sum
         bonds ++ List(bond)
       }
-      
+
       // Method below runs out of semaphores on mongo
 //      val bonds = fetchBondsParallel(bondIds,bondsCollection)
-      
+
       Intermediate(portfId,bonds)
   }
-  
-  def updatePrice(portfId: Int, price: Double): Unit = {
-    val portfs = mongo("Portfolios")
-    
-    val portf = MongoDbObject("id" -> portfId)
-    
+
+  /**
+    * Updates the portfolio's price.
+    * @param portfId Portfolio id
+    * @param price Prince
+    * @return modification count
+    */
+  def updatePrice(portfId: Int, price: Double): Long = {
+    val portfQuery = MongoDbObject("id" -> portfId)
+
     val newPrice = MongoDbObject("$set" -> MongoDbObject("price" -> price))
-    
-    portfs.updateOne(portf, newPrice)
-        
+
+    val result = portfolioCollection.updateOne(portfQuery, newPrice)
+
+    result.getModifiedCount
+  }
+
+  /**
+    * Updates a collection
+    * @param list List portfolio, price
+    * @return List modificaton count
+    */
+  def updatePrices(list: List[(Int,Double)]): List[Long] ={
+    for(item <- list) yield
+      updatePrice(item._1, item._2)
   }
   
     /**
-   * Gets the mongo host
+   * Gets the mongo host.
    * */
-  def getHost : String = {
-    val host = System.getProperty("host")
-    
-    if(host != null) host else "127.0.0.1"
-  }
+  def getHost: String = getPropertyOrDefault("host", "127.0.0.1")
 }

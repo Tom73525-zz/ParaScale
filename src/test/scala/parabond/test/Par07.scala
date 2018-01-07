@@ -157,7 +157,7 @@ class Par07 {
       
       val portfsQuery = MongoDbObject("id" -> portfId)
 
-      val portfsCursor = MongoHelper.portfCollection.find(portfsQuery)
+      val portfsCursor = MongoHelper.portfolioCollection.find(portfsQuery)
     
       // Get the bonds ids in the portfolio
       val bondIds = MongoHelper.asList(portfsCursor,"instruments")
