@@ -27,8 +27,9 @@ object ParentWithRunnable extends App {
   child.start
 
   val numThreads = Thread.activeCount
+  val id = Thread.currentThread.getId
 
-  println("parent: cores = "+numCores+" threads = "+numThreads)
+  println("parent: "+id+" "+numCores+" "+numThreads)
 
   child.join
 }
