@@ -19,11 +19,11 @@
  */
 package parascale.thread.basic
 
-class ChildRunnable(numCores: Int) extends Runnable {
+class ChildRunnable(id: Int) extends Runnable {
   /**
-    * Runs the child thread
+    * Runs the child thread.
     */
   override def run(): Unit = {
-    println("child: "+numCores + " cores")
+    println("child: "+id)
   }
 }

@@ -26,6 +26,9 @@ import parascale.thread.actorlike.Constant._
 import org.apache.log4j.Logger
 import parascale.util._
 
+/**
+  * This object demonstrates how to dispatch tasks to workers.
+  */
 object Dispatcher extends App {
   val LOG =  Logger.getLogger(getClass)
 
@@ -41,26 +44,44 @@ object Dispatcher extends App {
   join(workers)
 
 
+  /**
+    * Spawns workers.
+    * @param numWorkers Number of workers
+    * @return Spawned workers
+    */
   def spawnWorkers(numWorkers: Int): List[Worker] = {
-    (0 until numWorkers).foldLeft(List[Worker]()) { (list, id) =>
+    (0 until numWorkers).foldLeft(List[Worker]()) { (workers, id) =>
       LOG.info("spawing worker id = "+id)
       val worker = new Worker(id)
 
       worker.start
 
-      list ++ List(worker)
+      worker :: workers
     }
   }
 
+  /**
+    * Dispatches tasks to workers.
+    * @param workers Workers
+    */
   def dispatch(workers: List[Worker]): Unit = {
     val numTasks = getPropertyOrDefault("tasks",Constant.NUM_TASKS)
 
     for(taskno <- 0 until numTasks) {
       val task = produce(taskno)
-      workers(taskno % numWorkers).send(task)
+
+      val index = taskno % numWorkers
+
+      val worker = workers(index)
+
+      worker.send(task)
     }
   }
 
+  /**
+    * Waits for all the workers to finish.
+    * @param workers Workers we join
+    */
   def join(workers: List[Worker]): Unit = {
     workers.foreach { worker =>
       worker.send(DONE)
@@ -79,8 +100,6 @@ object Dispatcher extends App {
     LOG.debug("producing task "+num)
     Task(num, (MAX_PRODUCING*1000).toLong)
   }
-
-
 }
 
 

@@ -23,9 +23,10 @@
 package parascale.thread.actorlike
 
 /**
-  * This class implements the consumer's mailbox
+  * This class implements a synchronized mailbox in the actor style.
   */
 class Mailbox {
+  // Next or head index in the mail queue
   val NEXT = 0
 
   // Implement the mail queue as a mutable list buffer.
@@ -53,7 +54,7 @@ class Mailbox {
     if(queue.isEmpty)
       this.wait
 
-    val task = queue.remove(NEXT);
+    val task = queue.remove(NEXT)
 
     Some(task)
   }

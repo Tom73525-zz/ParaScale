@@ -22,13 +22,13 @@ package parascale.thread.basic
 object ParentWithRunnable extends App {
   val numCores = Runtime.getRuntime.availableProcessors
 
-  val child = new Thread(new ChildRunnable(numCores))
+  val child = new Thread(new ChildRunnable(0))
 
   child.start
 
   val numThreads = Thread.activeCount
 
-  println("parent: threads = "+numThreads)
+  println("parent: cores = "+numCores+" threads = "+numThreads)
 
   child.join
 }
