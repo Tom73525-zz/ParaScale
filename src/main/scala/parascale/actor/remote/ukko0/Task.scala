@@ -20,10 +20,37 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+package parascale.actor.remote.ukko0
+
+import java.io.ObjectOutputStream
+import java.net.{InetAddress, Socket}
 
 /**
- * Classes in this package are an alternative to Akka remote actors which are fraught with
- * compatibilities problems in the latest jar files.
- */
-package parascale.actor.remote.ukko;
+  * A wrapper class for remote actors to reply
+  * @param srcHost Source host
+  * @param srcPort Source port
+  * @param payload Inbound payload
+  */
+case class Task(srcHost: String, srcPort: Int, payload: Any) extends Serializable {
+  def reply(payload: Any): Unit = {
+    println("Task: replying to "+srcHost+":"+srcPort+" payload = "+payload)
+    val socket = new Socket(srcHost,srcPort)
 
+    val os = socket.getOutputStream
+
+    val oos = new ObjectOutputStream(os)
+
+    oos.writeObject(new Reply(InetAddress.getLocalHost.getHostAddress, payload))
+
+    oos.flush
+    oos.close
+
+    os.close
+  }
+
+//  /**
+//    * Converts instance to string.
+//    * @return String representation
+//    */
+//  override def toString = "payload " + payload + " replies to " + srcHost + ":" +srcPort
+}
