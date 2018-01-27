@@ -1,4 +1,4 @@
-package parascale.actor.remote.ukko
+package parascale.actor.remote.last
 
 import java.io.{EOFException, ObjectInputStream}
 import java.net.ServerSocket
