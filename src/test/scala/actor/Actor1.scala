@@ -18,7 +18,7 @@ object Actor1 extends App {
 
   val relay = new Relay(socket, actor1)
 
-  relay.send(A("got it!"))
+  relay ! (A("got it!"))
 }
 
 class Actor1 extends Actor  {

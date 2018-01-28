@@ -12,7 +12,7 @@ object Remote {
   * @param actor Local actor
   * @param localPort Port to listen for inbound remote messages.
   */
-class Remote(actor: Actor, localPort: Int) extends Thread {
+class Remote(actor: Actor, localPort: Int) extends Runnable {
   // Start the thread to receive inbound messages
   new Thread(this).start
 

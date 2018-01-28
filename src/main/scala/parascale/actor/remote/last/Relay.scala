@@ -92,17 +92,17 @@ class Relay(hostSocket: String, callback: Actor) extends Actor {
 
   /**
     * Sends a message using sockets.
-    * @param msg A message
+    * @param that A message
     */
-  override def send(msg: Any): Unit = {
-    val task = msg match {
+  override def send(that: Any): Unit = {
+    val task = that match {
       case t: Task =>
         t
       case _ =>
-         Task(replyAddr, replyPort, msg)
+         Task(replyAddr, replyPort, that)
     }
 
-    LOG.info("relaying "+msg+" as "+task)
+    LOG.info("relaying "+that+" as "+task)
 
     val socket = new Socket(destAddr, destPort)
 

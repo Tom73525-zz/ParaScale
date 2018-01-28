@@ -46,4 +46,10 @@ trait Actor extends Runnable {
 
   /** Retrieves a task from the mailbox.*/
   def receive: Task = mailbox.remove
+
+  /**
+    * Sends a message to this actor.
+    * @param that Message to send
+    */
+  def !(that: Any) = send(that)
 }

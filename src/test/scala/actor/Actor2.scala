@@ -8,7 +8,7 @@ object Actor2 extends App {
   val actor2 = new Actor2
 
   Thread.sleep(250)
-  actor2.send("testing 1-2-3")
+  actor2 ! "testing 1-2-3"
 
   new Remote(actor2,9000)
 }

@@ -15,13 +15,13 @@ object Task {
 }
 
 case class Task(host: String, port: Int, payload: Any, kind: Int = Task.TASK) extends Serializable {
-  def reply(msg: Any): Unit = {
-    val task = msg match {
+  def reply(that: Any): Unit = {
+    val task = that match {
       case task: Task =>
         task
 
       case _ =>
-        Task(InetAddress.getLocalHost.getHostAddress, -1, msg, Task.REPLY)
+        Task(InetAddress.getLocalHost.getHostAddress, -1, that, Task.REPLY)
     }
     println("Task: replying to "+host+":"+port+" payload = "+payload)
     val socket = new Socket(host, port)
@@ -37,4 +37,6 @@ case class Task(host: String, port: Int, payload: Any, kind: Int = Task.TASK) ex
 
     os.close
   }
+
+  def !(that: Any) = reply(that)
 }
