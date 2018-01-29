@@ -99,7 +99,7 @@ class Relay(hostSocket: String, callback: Actor) extends Actor {
       case t: Task =>
         t
       case _ =>
-         Task(replyAddr, replyPort, that)
+         Task(replyAddr+":"+replyPort, that)
     }
 
     LOG.info("relaying "+that+" as "+task)

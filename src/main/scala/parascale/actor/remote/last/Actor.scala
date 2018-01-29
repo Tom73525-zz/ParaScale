@@ -33,14 +33,17 @@ trait Actor extends Runnable {
   // Automatically starts the actor by invoking its run method
   new Thread(this).start
 
-  /** Deposits a task in the mailbox. */
-  def send(msg: Any): Unit = {
-    msg match {
+  /**
+    * Deposits a task in the mailbox.
+    * @param that Message
+    */
+  def send(that: Any): Unit = {
+    that match {
       case task: Task =>
         mailbox.add(task)
 
       case _ =>
-        mailbox.add(Task(Task.UNKNOWN_HOST,Task.UNKNOWN_PORT,msg))
+        mailbox.add(Task(Task.LOCAT_HOST, that))
     }
   }
 
