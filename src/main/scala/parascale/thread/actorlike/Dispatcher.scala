@@ -32,7 +32,7 @@ import parascale.util._
 object Dispatcher extends App {
   val LOG =  Logger.getLogger(getClass)
 
-  // Spawn
+  // Dispatch only as many workers as we have cores to avoid multiplexing.
   val numCores = Runtime.getRuntime.availableProcessors
 
   val numWorkers = getPropertyOrElse("workers", numCores)
@@ -41,22 +41,22 @@ object Dispatcher extends App {
 
   dispatch(workers)
 
+  // Wait for all the workers
   join(workers)
 
 
   /**
     * Spawns workers.
-    * @param numWorkers Number of workers
+    * @param n Number of workers
     * @return Spawned workers
     */
-  def spawnWorkers(numWorkers: Int): List[Worker] = {
-    (0 until numWorkers).foldLeft(List[Worker]()) { (workers, id) =>
-      LOG.info("spawing worker id = "+id)
+  def spawnWorkers(n: Int): Seq[Worker] = {
+    for(id <- 0 until n) yield {
       val worker = new Worker(id)
 
       worker.start
 
-      worker :: workers
+      worker
     }
   }
 
@@ -64,7 +64,7 @@ object Dispatcher extends App {
     * Dispatches tasks to workers.
     * @param workers Workers
     */
-  def dispatch(workers: List[Worker]): Unit = {
+  def dispatch(workers: Seq[Worker]): Unit = {
     val numTasks = getPropertyOrElse("tasks",Constant.NUM_TASKS)
 
     for(taskno <- 0 until numTasks) {
@@ -82,7 +82,7 @@ object Dispatcher extends App {
     * Waits for all the workers to finish.
     * @param workers Workers we join
     */
-  def join(workers: List[Worker]): Unit = {
+  def join(workers: Seq[Worker]): Unit = {
     workers.foreach { worker =>
       worker.send(DONE)
       worker.join
@@ -98,7 +98,7 @@ object Dispatcher extends App {
     sleep(MAX_PRODUCING)
 
     LOG.debug("producing task "+num)
-    Task(num, (MAX_PRODUCING*1000).toLong)
+    Task(num, MAX_PRODUCING)
   }
 }
 

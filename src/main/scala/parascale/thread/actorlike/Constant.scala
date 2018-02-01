@@ -25,13 +25,13 @@ package parascale.thread.actorlike
 /** Some constants */
 object Constant {
   /** Max working time in milliseconds */
-  val MAX_WORKING = 5000
+  val MAX_WORKING = 5000L
 
-  /** Max working time to produce a task in seconds */
-  val MAX_PRODUCING = 0.25
+  /** Max working time to produce a task in milliseconds */
+  val MAX_PRODUCING = 250L
 
   /** Max number of tasks to produce */
-  val NUM_TASKS = 5
+  val NUM_TASKS = 10
 
   /** Stop work token */
   val DONE = Task(-1, -1)

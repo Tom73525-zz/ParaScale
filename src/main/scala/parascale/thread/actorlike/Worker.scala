@@ -23,9 +23,9 @@
 package parascale.thread.actorlike
 
 import org.apache.log4j.Logger
-
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
+import parascale.util.sleep
 
 /**
   * This class consumes tasks through its mailbox.
@@ -48,7 +48,7 @@ class Worker(id: Int) extends Thread {
   override def run(): Unit = {
     LOG.info("work " + id + " spawned")
 
-    val tasks = ListBuffer[Task]()
+    val finished = ListBuffer[Task]()
 
     while (true) {
       // Wait to receive a task, if there is one
@@ -56,11 +56,11 @@ class Worker(id: Int) extends Thread {
         case Some(task) =>
           // If not done, record the effort for analysis later
           if(task != DONE)
-            tasks.append(process(task))
+            finished.append(process(task))
           else {
             // If done, log the effort and stop the thread
-            tasks.foreach { task =>
-              LOG.info("finish " + task)
+            finished.foreach { task =>
+              LOG.info("finished " + task)
             }
             return
           }
@@ -76,27 +76,14 @@ class Worker(id: Int) extends Thread {
     * @param task Task
     */
   def process(task: Task): Task = {
-    task match {
-      case DONE =>
-        LOG.info("processing DONE")
-        task
+    LOG.debug("processing task " + task.number)
 
-      case _ =>
-        LOG.debug("processing task " + task.number)
+    val working = ran.nextInt(MAX_WORKING.toInt)
+    sleep(working)
 
-        val working = ran.nextInt(MAX_WORKING)
-        sleep(working)
+    val result = Task(task.number, working)
 
-        val result = Task(task.number,working)
-
-        LOG.info("task complete: "+result)
-        result
-    }
+    LOG.info("task complete: " + result)
+    result
   }
-
-  /**
-    * Puts a thread to sleep.
-    * @param millis Milliseconds to sleep
-    */
-  def sleep(millis: Int) = Thread.sleep(millis)
 }
