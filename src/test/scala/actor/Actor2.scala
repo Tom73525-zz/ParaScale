@@ -2,6 +2,7 @@ package actor
 
 import org.apache.log4j.Logger
 import parascale.actor.remote.last.{Actor, Remote, Task}
+import parascale.util.getPropertyOrElse
 
 object Actor2 extends App {
   val LOG =  Logger.getLogger(getClass)
@@ -10,11 +11,12 @@ object Actor2 extends App {
   Thread.sleep(250)
   actor2 ! "testing 1-2-3"
 
-  new Remote(actor2,9000)
+  val port: Int = getPropertyOrElse("port",9000)
+  new Remote(port, actor2)
 }
 
 class Actor2 extends Actor {
-  override def run = {
+  def act = {
     import Actor2._
     LOG.info("running")
     while (true) {

@@ -55,7 +55,7 @@ class Par04 {
 
   def test {
     // Set the number of portfolios to analyze
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
 
     var me =  this.getClass().getSimpleName()
     var outFile = me + "-dat.txt"
@@ -65,7 +65,7 @@ class Par04 {
     
     os.print(me+" "+ "N: "+n+" ")
 
-    val details = getPropertyOrDefault("details",parseBoolean,false)
+    val details = getPropertyOrElse("details",parseBoolean,false)
 
     val numCores = Runtime.getRuntime.availableProcessors
 

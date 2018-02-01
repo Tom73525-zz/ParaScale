@@ -35,7 +35,7 @@ import parascale.parabond.util.{Constant, Data}
 import parascale.parabond.entry.SimpleBond
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-import parascale.util.getPropertyOrDefault
+import parascale.util.getPropertyOrElse
 
 /**
  * This object implements monngo-specific helper functions.
@@ -244,5 +244,5 @@ object MongoHelper {
     /**
    * Gets the mongo host.
    * */
-  def getHost: String = getPropertyOrDefault("host", "127.0.0.1")
+  def getHost: String = getPropertyOrElse("host", "127.0.0.1")
 }

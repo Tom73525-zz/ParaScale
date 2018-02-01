@@ -29,7 +29,7 @@ package parascale.parabond.test
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
-import parascale.util.{getPropertyOrDefault, parseBoolean}
+import parascale.util.{getPropertyOrElse, parseBoolean}
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
@@ -60,7 +60,7 @@ class Par01 {
   
   def test {
     // Set the number of portfolios to analyze
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
@@ -70,7 +70,7 @@ class Par01 {
     
     os.print(me+" "+ "N: "+n+" ")
 
-    val details = getPropertyOrDefault("details",parseBoolean,false)
+    val details = getPropertyOrElse("details",parseBoolean,false)
     
     // Load all the bonds into into memory
     // Note: the input is a list of Data instances, each element of which contains a list

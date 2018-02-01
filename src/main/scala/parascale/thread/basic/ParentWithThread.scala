@@ -32,7 +32,7 @@ object ParentWithThread extends App {
 
   val numThreads = Thread.activeCount
 
-  println("parent: "+numCores+" "+numThreads+" "+Thread.currentThread.getId)
+  println("parent: "+Thread.currentThread.getId+" "+numCores+" "+numThreads)
 
   child.join
 }

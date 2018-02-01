@@ -10,21 +10,21 @@ object Actor1 extends App {
 
   val actor1 = new Actor1
 
-  actor1.send("test message sent actor1")
+  actor1 ! "test message sent to self"
 
-  val destHost = InetAddress.getLocalHost.getHostAddress
+  val destAddr = InetAddress.getLocalHost.getHostAddress
   val destPort = 9000
-  val socket = destHost + ":" + destPort
+  val socket = destAddr + ":" + destPort
 
   val relay = new Relay(socket, actor1)
 
-  relay ! (A("got it!"))
+  relay ! A("got it!")
 }
 
 class Actor1 extends Actor  {
   import Actor1._
 
-  override def run = {
+  def act = {
     LOG.info("running")
     while(true) {
       receive match {

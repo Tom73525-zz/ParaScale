@@ -3,40 +3,40 @@ package parascale.actor.remote.last
 import java.io.{EOFException, ObjectInputStream}
 import java.net.ServerSocket
 
+/**
+  * Creates a remote object
+  */
 object Remote {
-  def apply(actor: Actor, localPort: Int) = new Remote(actor,localPort)
+  def apply(localPort: Int, actor: Actor) = new Remote(localPort, actor)
 }
 
 /**
   * This actor runs on the client side and relays message to the local actor
-  * @param actor Local actor
-  * @param localPort Port to listen for inbound remote messages.
+  * @param callforward Local actor
+  * @param port Port to listen for inbound remote messages.
   */
-class Remote(actor: Actor, localPort: Int) extends Runnable {
+class Remote(port: Int, callforward: Actor) extends Runnable {
+  import org.apache.log4j.Logger
+  val LOG =  Logger.getLogger(getClass)
+
   // Start the thread to receive inbound messages
-  new Thread(this).start
+  val me = new Thread(this)
+  me.start
 
   /** Relays inbound message to the (local) actor */
-  override def run(): Unit = {
-    println("Remote: receiver for actor started")
-    val socket = new ServerSocket(localPort)
+  def run = {
+    val id = Thread.currentThread.getId
+    LOG.info("remote daemon id = "+id+" for call-forward actor "+callforward+" port = "+port)
+    val socket = new ServerSocket(port)
 
     try {
       while(true) {
-        println("Remote: waiting to accept connection on port "+localPort)
+        println("Remote: waiting to accept connection on port "+port)
         val clientSocket = socket.accept()
 
-        // Deserialize the message
-        println("Remote: got connection")
-        val ois = new ObjectInputStream(clientSocket.getInputStream)
+        println("Remote: got connection from "+clientSocket.getInetAddress.getHostAddress)
 
-        val msg = ois.readObject
-
-        // Relay message to the (local) actor
-        actor.send(msg)
-
-        ois.close
-        clientSocket.close
+        new Thread(new Ice(clientSocket,callforward)).start
       }
     }
     catch {

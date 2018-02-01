@@ -23,18 +23,26 @@
 package parascale.actor.remote.last
 
 /**
-  * This construct is the base level definition of an actor.
-  * Subclasses are started automatically when the actor gets instantiated.
+  * Base level definition of an actor. Subclasses started automatically when the actor gets instantiated.
   */
 trait Actor extends Runnable {
   // Mailbox used by the actor
   val mailbox = new Mailbox[Task]
 
   // Automatically starts the actor by invoking its run method
-  new Thread(this).start
+  val me = new Thread(this)
+  me.start
+
+  /** Runs the actor: subclass must implement */
+  def act
+
+  /** Performs any startup chores then runs the actor */
+  final override def run = {
+    act
+  }
 
   /**
-    * Deposits a task in the mailbox.
+    * Deposits a task in actor mailbox.
     * @param that Message
     */
   def send(that: Any): Unit = {
@@ -55,4 +63,16 @@ trait Actor extends Runnable {
     * @param that Message to send
     */
   def !(that: Any) = send(that)
+
+  /**
+    * Gets the thread id
+    * @return Thread id
+    */
+  def id = me.getId
+
+  /**
+    * Promotes actor a string.
+    * @return String representation
+    */
+  override def toString = this.getClass.getSimpleName + " (id="+id+")"
 }

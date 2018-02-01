@@ -32,7 +32,7 @@ import parabond.mr._
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
-import parascale.util.{getPropertyOrDefault, parseBoolean}
+import parascale.util.{getPropertyOrElse, parseBoolean}
 
 /** Test driver */
 object Mr04 {
@@ -58,7 +58,7 @@ class Mr04 {
   /** Unit test entry point */
   def test {
     // Set the number of portfolios to analyze
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
@@ -68,7 +68,7 @@ class Mr04 {
 
     os.print(me+" "+ "N: "+n+" ")
 
-    val details = getPropertyOrDefault("details",parseBoolean,false)
+    val details = getPropertyOrElse("details",parseBoolean,false)
 
     // Build the portfolio list
     // Connect to the portfolio collection

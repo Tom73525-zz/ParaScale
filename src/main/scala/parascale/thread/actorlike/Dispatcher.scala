@@ -35,7 +35,7 @@ object Dispatcher extends App {
   // Spawn
   val numCores = Runtime.getRuntime.availableProcessors
 
-  val numWorkers = getPropertyOrDefault("workers", numCores)
+  val numWorkers = getPropertyOrElse("workers", numCores)
 
   val workers = spawnWorkers(numWorkers)
 
@@ -65,7 +65,7 @@ object Dispatcher extends App {
     * @param workers Workers
     */
   def dispatch(workers: List[Worker]): Unit = {
-    val numTasks = getPropertyOrDefault("tasks",Constant.NUM_TASKS)
+    val numTasks = getPropertyOrElse("tasks",Constant.NUM_TASKS)
 
     for(taskno <- 0 until numTasks) {
       val task = produce(taskno)

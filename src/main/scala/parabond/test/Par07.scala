@@ -56,7 +56,7 @@ class Par07 {
   /** Runs unit test */
   def test {
     // Set the number of portfolios to analyze
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
@@ -66,7 +66,7 @@ class Par07 {
     
     os.print(me+" "+ "N: "+n+" ")
 
-    val details = getPropertyOrDefault("details",parseBoolean,false)
+    val details = getPropertyOrElse("details",parseBoolean,false)
     
     // Build the portfolio list 
         

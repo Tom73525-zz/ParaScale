@@ -30,7 +30,7 @@ import parascale.parabond.casa.MongoHelper
 import parascale.parabond.mr.MapReduce
 import parascale.parabond.util.Result
 import parabond.mr.{PORTF_NUM, _}
-import parascale.util.{getPropertyOrDefault, parseBoolean}
+import parascale.util.{getPropertyOrElse, parseBoolean}
 
 /** Test driver */
 object Mr03 {
@@ -54,7 +54,7 @@ class Mr03 {
   /** Unit test entry point */
   def test {      
     // Set the number of portfolios to analyze
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
@@ -64,7 +64,7 @@ class Mr03 {
     
     os.print(me+" "+ "N: "+n+" ")
 
-    val details = getPropertyOrDefault("details",parseBoolean,false)
+    val details = getPropertyOrElse("details",parseBoolean,false)
 
     val t2 = System.nanoTime
     val input = MongoHelper.loadPortfsParallel(n)

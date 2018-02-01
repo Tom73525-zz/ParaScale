@@ -54,38 +54,28 @@ class Relay(hostSocket: String, callback: Actor) extends Actor {
 
   val destAddr = params(0)
   val destPort = if(params.length == 2) params(1).toInt else Relay.DEFAULT_PORT
+  LOG.info("relaying all messages to "+destAddr+":"+destPort)
 
-  // Initialize the reply parameters
+  // Initialize reply target
   val replyAddr =  InetAddress.getLocalHost.getHostAddress
-  LOG.info("listening for replies as host "+replyAddr)
-
   val replyPort = destPort + Thread.activeCount
-  LOG.info("listening for replies on port "+replyPort)
+  LOG.info("listening for replies on "+replyAddr+":"+replyPort)
 
   /** Runs the worker thread to receive replies. */
-  override def run: Unit = {
+  def act = {
     Thread.sleep(250)
 
-    LOG.info("thread started to receive replies")
+    val id = Thread.currentThread.getId
+    LOG.info("relay daemon started id = "+id+" for callback actor "+callback)
     val socket = new ServerSocket(replyPort)
 
     while(true) {
-      LOG.info("waiting to accept connection")
-      val clientSocket = socket.accept()
+      LOG.info("waiting to accept reply connection on port = " + replyPort)
+      val clientSocket: Socket = socket.accept()
 
-      LOG.info("connection accepted from host "+clientSocket.getInetAddress.getHostAddress)
-      val ois = new ObjectInputStream(clientSocket.getInputStream)
+      LOG.info("reply connection accepted from host " + clientSocket.getInetAddress.getHostAddress)
 
-      val msg = ois.readObject
-
-      LOG.info("received message = "+msg)
-      LOG.info("callback actor = "+callback)
-
-      callback.send(msg)
-      LOG.info("successfully relayed "+msg)
-
-      ois.close
-      clientSocket.close
+      new Thread(new Ice(clientSocket, callback)).start
     }
   }
 
@@ -119,4 +109,6 @@ class Relay(hostSocket: String, callback: Actor) extends Actor {
     LOG.info("successfully sent "+task+" to "+destAddr+":"+destPort)
   }
 }
+
+
 

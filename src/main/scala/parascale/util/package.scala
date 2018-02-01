@@ -22,7 +22,7 @@ package object util {
     * @param default Default integer
     * @return Default integer value
     */
-  def getPropertyOrDefault(key: String, default: Int): Int = getPropertyOrDefault(key,Integer.parseInt,default)
+  def getPropertyOrElse(key: String, default: Int): Int = getPropertyOrElse(key,Integer.parseInt,default)
 
   /**
     * Gets a generic property from the system properyies, if it's not found use a default.
@@ -32,7 +32,7 @@ package object util {
     * @tparam T Parameterize type of value
     * @return Key-value or default value
     */
-  def getPropertyOrDefault[T](key: String, parse: (String) => T, default: T): T = {
+  def getPropertyOrElse[T](key: String, parse: (String) => T, default: T): T = {
     val value = System.getProperty(key)
 
     if(value == null)
@@ -47,7 +47,7 @@ package object util {
     * @param default Default
     * @return Key-value or default value
     */
-  def getPropertyOrDefault(key: String, default: String): String = getPropertyOrDefault(key,parseString,default)
+  def getPropertyOrElse(key: String, default: String): String = getPropertyOrElse(key,parseString,default)
 
   /**
     * Convenience method for sleeping.

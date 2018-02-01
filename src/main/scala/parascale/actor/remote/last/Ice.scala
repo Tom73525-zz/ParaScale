@@ -20,37 +20,35 @@
  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package parascale.actor.remote.ukko0
+package parascale.actor.remote.last
 
-import java.io.ObjectOutputStream
-import java.net.{InetAddress, Socket}
+import java.io.ObjectInputStream
+import java.net.Socket
 
 /**
-  * A wrapper class for remote actors to reply
-  * @param srcHost Source host
-  * @param srcPort Source port
-  * @param payload Inbound payload
+  * Inbound connection entity (ICE).
+  *
+  * @param socket Inbound socket connection.
+  * @param handler Outbound callback handler
   */
-case class Task(srcHost: String, srcPort: Int, payload: Any) extends Serializable {
-  def reply(payload: Any): Unit = {
-    println("Task: replying to "+srcHost+":"+srcPort+" payload = "+payload)
-    val socket = new Socket(srcHost,srcPort)
+class Ice(socket: Socket, handler: Actor) extends Runnable {
+  import org.apache.log4j.Logger
+  val LOG =  Logger.getLogger(getClass)
 
-    val os = socket.getOutputStream
+  /** Runs reply arrivals and handing off to callback actor */
+  override def run = {
+    LOG.info("ice started (id="+Thread.currentThread.getId+")")
+    val ois = new ObjectInputStream(socket.getInputStream)
 
-    val oos = new ObjectOutputStream(os)
+    val msg = ois.readObject
 
-    oos.writeObject(new Reply(InetAddress.getLocalHost.getHostAddress, payload))
+    LOG.info("received inbound message = " + msg)
+    LOG.info("actor handler = " + handler)
 
-    oos.flush
-    oos.close
+    handler.send(msg)
+    LOG.info("successfully relayed " + msg)
 
-    os.close
+    ois.close
+    socket.close
   }
-
-//  /**
-//    * Converts instance to string.
-//    * @return String representation
-//    */
-//  override def toString = "payload " + payload + " replies to " + srcHost + ":" +srcPort
 }

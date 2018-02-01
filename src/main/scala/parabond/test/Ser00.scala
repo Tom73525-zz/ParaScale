@@ -51,7 +51,7 @@ class Ser00 {
 
   def test {  
     // Set the number of portfolios to analyze
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"

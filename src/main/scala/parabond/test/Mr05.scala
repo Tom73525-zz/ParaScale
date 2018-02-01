@@ -54,7 +54,7 @@ class Mr05 {
   
   /** Unit test entry point */
   def test {
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
 
     print("\n"+this.getClass()+" "+ "N: "+n +" ")
 

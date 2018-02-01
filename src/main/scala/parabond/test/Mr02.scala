@@ -29,7 +29,7 @@ package parascale.parabond.test
 import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
 import parascale.parabond.util.Result
 import parabond.mr._
-import parascale.util.{getPropertyOrDefault, parseBoolean}
+import parascale.util.{getPropertyOrElse, parseBoolean}
 
 import scala.util.Random
 
@@ -57,7 +57,7 @@ class Mr02 {
   /** Unit test entry point */
     def test {
     // Set the number of portfolios to analyze
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
     
     val me =  this.getClass().getSimpleName()
 
@@ -68,7 +68,7 @@ class Mr02 {
     
     os.print(me+" "+ "N: "+n+" ")
 
-      val details = getPropertyOrDefault("details",parseBoolean,false)
+      val details = getPropertyOrElse("details",parseBoolean,false)
     
     // Build the portfolio list
     val input = (1 to n).foldLeft(List[Int]()) { (list, p) =>

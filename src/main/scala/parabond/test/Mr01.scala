@@ -31,7 +31,7 @@ import parascale.parabond.mr.MapReduce
 import parascale.parabond.util.{Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parabond.mr._
-import parascale.util.{getPropertyOrDefault, parseBoolean}
+import parascale.util.{getPropertyOrElse, parseBoolean}
 
 import scala.util.Random
 
@@ -59,7 +59,7 @@ class Mr01 {
     // Set the number of portfolios to analyze
     val arg = System.getProperty("n")
 
-    val n = getPropertyOrDefault("n",PORTF_NUM)
+    val n = getPropertyOrElse("n",PORTF_NUM)
     
     val me =  this.getClass().getSimpleName()
     val outFile = me + "-dat.txt"
@@ -69,7 +69,7 @@ class Mr01 {
     
     os.print(me+" "+ "N: "+n+" ")
 
-    val details = getPropertyOrDefault("details",parseBoolean,false)
+    val details = getPropertyOrElse("details",parseBoolean,false)
 
     // Build the portfolio list
     val input = (1 to n).foldLeft(List[Int]()) { (list, p) =>
