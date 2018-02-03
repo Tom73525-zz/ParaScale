@@ -24,20 +24,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package parascale.parabond.util
+package parabond.cluster
 
-import parascale.parabond.entry.SimpleBond
+import parascale.parabond.util.Data
 
-/**
- * Result of valuation for a portfolio including performance statistics
- */
-case class Result(portfId: Int, value: Double, bondCount: Int, t0: Long, t1: Long)
-  
-/**
- * Data mapped between input and output of price method
- */
-object Data {
-  def apply(portfId: Int): Data = Data(portfId, null ,null)
+abstract class Drone {
+  def price(input: Data): Data
 }
-
-case class Data(portfId: Int, bonds: List[SimpleBond], result: Result)

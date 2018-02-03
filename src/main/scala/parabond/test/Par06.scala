@@ -177,7 +177,7 @@ class Par06 {
         case x : Data =>
           val intermediate = MongoHelper.fetchBonds(x.portfId) 
           
-          List(Data(x.portfId,intermediate.list,null)) ++ opa
+          List(Data(x.portfId,intermediate.bonds,null)) ++ opa
       }         
 
     }

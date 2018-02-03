@@ -164,7 +164,7 @@ class Ser03 {
     { (portfIdBonds,portfId) =>
       val intermediate = MongoHelper.fetchBonds(portfId)
       
-      Data(portfId,intermediate.list,null) :: portfIdBonds
+      Data(portfId,intermediate.bonds,null) :: portfIdBonds
     }
     
     list

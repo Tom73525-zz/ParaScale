@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.casa.MongoHelper.Intermediate
+import parascale.parabond.casa.MongoHelper.PortfIdToBondsMap
 import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import scala.collection.mutable.ListBuffer
@@ -158,7 +158,7 @@ class Par02 {
     { (portfIdBonds,portfId) =>
       val intermediate = MongoHelper.fetchBonds(portfId)
       
-      Data(portfId,intermediate.list,null) :: portfIdBonds
+      Data(portfId,intermediate.bonds,null) :: portfIdBonds
     }
     
     list
@@ -177,7 +177,7 @@ class Par02 {
     import scala.concurrent.{Await, Future}
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    val futures: IndexedSeq[Future[Intermediate]] = for(_ <- 1 to n) yield Future {
+    val futures: IndexedSeq[Future[PortfIdToBondsMap]] = for(_ <- 1 to n) yield Future {
       // Select a portfolio
       val portfId = ran.nextInt(100000) + 1
 
@@ -187,9 +187,9 @@ class Par02 {
 
     futures.foldLeft(ListBuffer[Data]()) { (list,future) =>
       import scala.concurrent.duration._
-      val result: Intermediate = Await.result(future, 100 seconds)
+      val result: PortfIdToBondsMap = Await.result(future, 100 seconds)
 
-      list ++ List(Data(result.portfId, result.list, null))
+      list ++ List(Data(result.portfId, result.bonds, null))
     }
   }
 }

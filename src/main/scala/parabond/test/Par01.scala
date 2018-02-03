@@ -165,7 +165,7 @@ class Par01 {
     { (portfIdBonds,portfId) =>
       val intermediate = MongoHelper.fetchBonds(portfId)
       
-      Data(portfId,intermediate.list,null) :: portfIdBonds
+      Data(portfId,intermediate.bonds,null) :: portfIdBonds
     }
     
     list
@@ -198,7 +198,7 @@ class Par01 {
         case data : Data =>
           val bonds = MongoHelper.fetchBonds(data.portfId)
           
-          List(Data(data.portfId,bonds.list,null)) ++ opa
+          List(Data(data.portfId,bonds.bonds,null)) ++ opa
       }         
 
     }
@@ -229,7 +229,7 @@ class Par01 {
       import scala.concurrent.duration._
       val result = Await.result(future, 100 seconds)
 
-      list ++ List(Data(result.portfId, result.list, null))
+      list ++ List(Data(result.portfId, result.bonds, null))
     }
 
     list

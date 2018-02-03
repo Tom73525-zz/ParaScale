@@ -30,12 +30,16 @@ import java.util.logging.{Level, Logger}
 
 import com.mongodb.client.FindIterable
 import org.bson.Document
+
 import scala.util.Random
 import parascale.parabond.util.{Constant, Data}
 import parascale.parabond.entry.SimpleBond
+
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import parascale.util.getPropertyOrElse
+
+import scala.collection.GenSeq
 
 /**
  * This object implements monngo-specific helper functions.
@@ -54,8 +58,8 @@ object MongoHelper {
   /** Initialize the random number generator */
   val ran = new Random(0)
 
-  case class Intermediate(portfId: Int, list: List[SimpleBond])
-  case class Intermediate2(bonds: List[SimpleBond])
+  case class PortfIdToBondsMap(portfId: Int, bonds: List[SimpleBond])
+  case class Bonds(list: List[SimpleBond])
 
   /**
    * Loads a list of 2-tuples of portfolios x list of bonds
@@ -98,7 +102,6 @@ object MongoHelper {
    * Parallel load the portfolios and bonds into memory (actor-based).
    */
   def loadPortfsParallel(n : Int) : List[(Int,List[SimpleBond])] = {
-
     val futures = for(_ <- 1 to n) yield Future {
       // Select a portfolio
       val lottery = ran.nextInt(Constant.NUM_PORTFOLIOS) + 1
@@ -111,7 +114,7 @@ object MongoHelper {
       import scala.concurrent.duration._
       val result = Await.result(future, 100 seconds)
 
-      list ++ List((result.portfId,result.list))
+      list ++ List((result.portfId,result.bonds))
     }
 
     list
@@ -127,7 +130,7 @@ object MongoHelper {
     { (portfIdBonds,portfId) =>
       val intermediate = fetchBonds(portfId)
 
-      (portfId,intermediate.list) :: portfIdBonds
+      (portfId,intermediate.bonds) :: portfIdBonds
     }
 
     list
@@ -185,7 +188,7 @@ object MongoHelper {
     * @param portfId Portfolio id
     * @return Container of portfolio id and bonds
     */
-  def fetchBonds(portfId: Int): Intermediate = {
+  def fetchBonds(portfId: Int): PortfIdToBondsMap = {
       // Retrieve the portfolio
       val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -212,7 +215,7 @@ object MongoHelper {
       // Method below runs out of semaphores on mongo
 //      val bonds = fetchBondsParallel(bondIds,bondsCollection)
 
-      Intermediate(portfId,bonds)
+      PortfIdToBondsMap(portfId,bonds)
   }
 
   /**

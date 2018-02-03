@@ -1,7 +1,8 @@
 package parascale
 
-package object util {
+import org.apache.log4j.Logger
 
+package object util {
   /**
     * Parses a boolean string.
     * @param s String
@@ -42,12 +43,20 @@ package object util {
   }
 
   /**
-    * Gets a system property or a default value
+    * Gets a system property or a default string value
     * @param key Property
     * @param default Default
     * @return Key-value or default value
     */
   def getPropertyOrElse(key: String, default: String): String = getPropertyOrElse(key,parseString,default)
+
+  /**
+    * Gets a system property or a default boolean value
+    * @param key
+    * @param default
+    * @return
+    */
+  def getPropertyOrElse(key: String, default: Boolean): Boolean = getPropertyOrElse(key,parseBoolean, default)
 
   /**
     * Convenience method for sleeping.
