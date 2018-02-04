@@ -47,6 +47,9 @@ object MemoryBoundDrone extends App {
   report(LOG, analysis)
 }
 
+/**
+  * Loads all the bonds of all the portfolios into memory then prices each portfolio per core.
+  */
 class MemoryBoundDrone extends Drone {
   def analyze: Analysis = {
     // Clock in

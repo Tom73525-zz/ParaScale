@@ -45,6 +45,9 @@ object NaiveDrone extends App {
   report(LOG, analysis)
 }
 
+/**
+  * Prices one portfolio per core.
+  */
 class NaiveDrone extends Drone {
   def analyze: Analysis = {
     // Clock in

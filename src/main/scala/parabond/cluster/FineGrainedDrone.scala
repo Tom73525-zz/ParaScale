@@ -40,6 +40,9 @@ object FineGrainedDrone extends App {
   report(LOG, analysis)
 }
 
+/**
+  * Prices one bond per core the rolls these prices into the portfolio price.
+  */
 class FineGrainedDrone extends NaiveDrone {
   /**
     * Price a portfolio

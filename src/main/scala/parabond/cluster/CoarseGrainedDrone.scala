@@ -115,7 +115,9 @@ class CoarseGrainedDrone extends Drone {
     */
 
   def price(tasks: Seq[Task]) : Seq[Task] = {
-    // We can do this because each job specified by the data passes through the naive map.
+    // Assumes tasks is a serial collection.
+    // Check above ad find blocks is IndexSeq[IndexSeq[Task]]. So .par on it will be
+    // ParSeq[IndexSeq[Task]].
     tasks.map(naive.price)
   }
 }
