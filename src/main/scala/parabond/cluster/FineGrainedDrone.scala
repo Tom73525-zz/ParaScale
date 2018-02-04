@@ -27,70 +27,26 @@
 package parabond.cluster
 
 import org.apache.log4j.Logger
-import parabond.cluster.NaiveDrone.LOG
-import parabond.mr.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
+import parascale.parabond.entry.SimpleBond
 import parascale.parabond.util.{Data, Helper, Result}
-import parascale.parabond.util.Constant.NUM_PORTFOLIOS
 import parascale.parabond.value.SimpleBondValuator
-import parascale.util.getPropertyOrElse
-import scala.collection.GenSeq
-import scala.util.Random
 
-object NaiveDrone extends App {
+object FineGrainedDrone extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new NaiveDrone analyze
+  val analysis = new FineGrainedDrone analyze
 
   report(LOG, analysis)
 }
 
-class NaiveDrone extends Drone {
-  def analyze: Analysis = {
-    // Clock in
-    val t0 = System.nanoTime
-
-    // Seed must be same for ever host in cluster as this establishes
-    // the randomized portfolio sequence
-    val seed = getPropertyOrElse("seed",0)
-    Random.setSeed(seed)
-
-    // Size of database
-    val size  = getPropertyOrElse("size", NUM_PORTFOLIOS)
-
-    // Shuffled deck of portfolios
-    val deck = Random.shuffle(0 to size-1)
-
-    // Number of portfolios to analyze
-    val n = getPropertyOrElse("n", PORTF_NUM)
-
-    // Start and end (inclusive) indices in analysis sequence
-    val begin = getPropertyOrElse("begin", 0)
-    val end = begin + n
-
-    // The jobs working on, k+1 since portf ids are 1-based
-    val indices = for(k <- begin to end) yield Data(deck(k) + 1)
-
-    // Get the proper collection depending on whether we're measuring T1 or TN
-    val jobs = if(getPropertyOrElse("par", true)) indices.par else indices
-
-    // Run the analysis
-    val results = jobs.map(price)
-
-    // Clock out
-    val t1 = System.nanoTime
-
-    Analysis(results, t0, t1)
-  }
-
+class FineGrainedDrone extends NaiveDrone {
   /**
-    * Prices a portfolio using the "naive" algorithm.
-    * It makes two requests of the database:<p>
-    * 1) fetch the portfolio<p>
-    * 2) fetch bonds in that portfolio.<p>
-    * After the second fetch the bond is then valued and added to the portfoio value
+    * Price a portfolio
+    * @param job Portfolio
+    * @return Valuation
     */
-  def price(job: Data): Data = {
+  override def price(job: Data): Data = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -101,32 +57,40 @@ class NaiveDrone extends Drone {
 
     val portfsCursor = MongoHelper.portfolioCollection.find(portfsQuery)
 
-    // Get the bonds ids in the portfolio
-    val bondIds = MongoHelper.asList(portfsCursor,"instruments")
+    // Get the bonds in the portfolio
+    val bids = MongoHelper.asList(portfsCursor,"instruments")
 
-    // Price each bond and sum all the prices
-    val value = bondIds.foldLeft(0.0) { (sum, id) =>
-      // Get the bond from the bond collection by its key id
-      val bondQuery = MongoDbObject("id" -> id)
+    val bondIds = for(i <- 0 until bids.size) yield Data(bids(i),null,null)
+
+    val output = bondIds.par.map { bondId =>
+      // Get the bond from the bond collection
+      val bondQuery = MongoDbObject("id" -> bondId.portfId)
 
       val bondCursor = MongoHelper.bondCollection.find(bondQuery)
 
       val bond = MongoHelper.asBond(bondCursor)
 
-      // Price the bond
       val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
       val price = valuator.price
 
-      // Update portfolio price
-      sum + price
-    }
+      new SimpleBond(bond.id,bond.coupon,bond.freq,bond.tenor,price)
+    }.reduce(sum)
 
-    // Update the portfolio price in the database
-    MongoHelper.updatePrice(portfId,value)
+    MongoHelper.updatePrice(job.portfId,output.maturity)
 
     val t1 = System.nanoTime
 
-    Data(portfId,job.bonds,Result(portfId,value,bondIds.size,t0,t1))
+    Data(job.portfId, null, Result(job.portfId, output.maturity, bondIds.size, t0, t1))
+  }
+
+  /**
+    * Reduces to simple bond prices.
+    * @param a Bond a
+    * @param b Bond b
+    * @return Reduced bond price
+    */
+  def sum(a: SimpleBond, b:SimpleBond) : SimpleBond = {
+    new SimpleBond(0,0,0,0,a.maturity+b.maturity)
   }
 }

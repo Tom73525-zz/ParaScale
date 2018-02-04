@@ -27,25 +27,37 @@
 package parabond.cluster
 
 import org.apache.log4j.Logger
-import parabond.cluster.NaiveDrone.LOG
 import parabond.mr.PORTF_NUM
-import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Data, Helper, Result}
 import parascale.parabond.util.Constant.NUM_PORTFOLIOS
-import parascale.parabond.value.SimpleBondValuator
+import parascale.parabond.util.Data
 import parascale.util.getPropertyOrElse
-import scala.collection.GenSeq
 import scala.util.Random
 
-object NaiveDrone extends App {
+/**
+  * This object starts the analysis and runs the analysis report.
+  */
+object CoarseGrainedDrone extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new NaiveDrone analyze
+  val analysis = new CoarseGrainedDrone analyze
 
   report(LOG, analysis)
 }
 
-class NaiveDrone extends Drone {
+/**
+  * Prices a block of portfolios per core.
+  */
+class CoarseGrainedDrone extends Drone {
+  /**
+    * Prices each portfolio
+    * @return
+    */
+  def naive = new NaiveDrone
+
+  /**
+    * Runs the portfolio analyses.
+    * @return Analysis
+    */
   def analyze: Analysis = {
     // Clock in
     val t0 = System.nanoTime
@@ -68,65 +80,42 @@ class NaiveDrone extends Drone {
     val begin = getPropertyOrElse("begin", 0)
     val end = begin + n
 
-    // The jobs working on, k+1 since portf ids are 1-based
+    // Indices in the deck we're working on
+    // Note: k+1 since portf ids are 1-based
     val indices = for(k <- begin to end) yield Data(deck(k) + 1)
 
-    // Get the proper collection depending on whether we're measuring T1 or TN
-    val jobs = if(getPropertyOrElse("par", true)) indices.par else indices
+    // Block the indices according to number of cores: each core gets a single clock.
+    val numCores = getPropertyOrElse("cores",Runtime.getRuntime.availableProcessors)
+
+    val blksize = n / numCores
+
+    val blocks = for(core <- 0 until numCores) yield {
+      val start = core * blksize + begin
+      val finish = start + blksize
+
+      indices.slice(start, finish)
+    }
 
     // Run the analysis
-    val results = jobs.map(price)
+    val results = blocks.par.map(price)
+
+    // Need Seq[Data], not ParSeq[Seq[Data]], for reporting and compiler specs
+    val flattened = results.flatten
 
     // Clock out
     val t1 = System.nanoTime
 
-    Analysis(results, t0, t1)
+    Analysis(flattened, t0, t1)
   }
 
   /**
-    * Prices a portfolio using the "naive" algorithm.
-    * It makes two requests of the database:<p>
-    * 1) fetch the portfolio<p>
-    * 2) fetch bonds in that portfolio.<p>
-    * After the second fetch the bond is then valued and added to the portfoio value
+    * Price a collection of portfolios.
+    * @param jobs Portfolios
+    * @return Collection of priced portfolios
     */
-  def price(job: Data): Data = {
-    // Value each bond in the portfolio
-    val t0 = System.nanoTime
 
-    // Retrieve the portfolio
-    val portfId = job.portfId
-
-    val portfsQuery = MongoDbObject("id" -> portfId)
-
-    val portfsCursor = MongoHelper.portfolioCollection.find(portfsQuery)
-
-    // Get the bonds ids in the portfolio
-    val bondIds = MongoHelper.asList(portfsCursor,"instruments")
-
-    // Price each bond and sum all the prices
-    val value = bondIds.foldLeft(0.0) { (sum, id) =>
-      // Get the bond from the bond collection by its key id
-      val bondQuery = MongoDbObject("id" -> id)
-
-      val bondCursor = MongoHelper.bondCollection.find(bondQuery)
-
-      val bond = MongoHelper.asBond(bondCursor)
-
-      // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
-
-      val price = valuator.price
-
-      // Update portfolio price
-      sum + price
-    }
-
-    // Update the portfolio price in the database
-    MongoHelper.updatePrice(portfId,value)
-
-    val t1 = System.nanoTime
-
-    Data(portfId,job.bonds,Result(portfId,value,bondIds.size,t0,t1))
+  def price(jobs: Seq[Data]) : Seq[Data] = {
+    // We can do this because each job specified by the data passes through the naive map.
+    jobs.map(naive.price)
   }
 }

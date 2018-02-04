@@ -45,4 +45,8 @@ object Constant {
   /** Portfolio input data */
   val INPUT_PORTFS_FILENAME = "portfs.txt"
 
+  /**
+    * Maximum wait time in seconds.
+    */
+  val MAX_WAIT_TIME = 100000
 }

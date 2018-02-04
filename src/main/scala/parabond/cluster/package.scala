@@ -36,7 +36,8 @@ import scala.collection.parallel.ParSeq
 
 package object cluster {
   /**
-    * Converts nano-seconds to seconds implicitly
+    * Converts nano-seconds to seconds implicitly.
+    * TODO: find more elegant want to do this with single class.
     * See https://alvinalexander.com/scala/scala-how-to-add-new-methods-to-existing-classes
     * @param dt Time
     */
@@ -58,14 +59,14 @@ package object cluster {
   /**
     * Writes a report to the diagnostic log
     * @param log Logger to use
-    * @param results Results to report
-    * @param t0 Start time of analysis
-    * @param t1 Finish time of analysis
+    * @param analysis Results to report
     */
-  def report(log: Logger, results: GenSeq[Data], t0: Long, t1: Long): Unit = {
+  def report(log: Logger, analysis: Analysis): Unit = {
     // Generate the detailed output report, if needed
     val details = getPropertyOrElse("details",false)
 
+    val results = analysis.results
+    val t0 = analysis.t0
     if(details) {
       log.info("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
 
@@ -86,7 +87,8 @@ package object cluster {
       sum + (output.result.t1 - output.result.t0)
     } seconds
 
-    val dtN = (t1 - t0) seconds
+
+    val dtN = (analysis.t1 - analysis.t0) seconds
 
     val speedup = dt1 / dtN
 
@@ -98,10 +100,6 @@ package object cluster {
       format(dt1,dtN,numCores,speedup,e))
 
     val n = getPropertyOrElse("n", PORTF_NUM)
-    println(" DONE! %d %7.4f".format(n, dtN))
+    log.info(" DONE! %d %7.4f".format(n, dtN))
   }
-
-//  def report(log: Logger, results: ParSeq[Data], t0: Long, t1: Long): Unit = {
-//    report(log, results.toSeq,t0,t1)
-//  }
 }

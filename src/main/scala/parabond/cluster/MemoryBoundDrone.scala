@@ -27,6 +27,7 @@
 package parabond.cluster
 
 import org.apache.log4j.Logger
+import parabond.cluster.MemoryBoundDrone.LOG
 import parabond.mr.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.casa.MongoHelper.{PortfIdToBondsMap, bondCollection, mongo}
@@ -36,14 +37,18 @@ import parascale.parabond.util.Constant.NUM_PORTFOLIOS
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util.getPropertyOrElse
 import scala.collection.GenSeq
-import scala.concurrent.{Await, Future}
 import scala.util.Random
 
-object MemoryBoundDrone {
-  // Connect to the logger
+object MemoryBoundDrone extends App {
   val LOG = Logger.getLogger(getClass)
 
-  def test: Tuple3[GenSeq[Data], Long, Long] = {
+  val analysis = new MemoryBoundDrone analyze
+
+  report(LOG, analysis)
+}
+
+class MemoryBoundDrone extends Drone {
+  def analyze: Analysis = {
     // Clock in
     val t0 = System.nanoTime
 
@@ -65,22 +70,45 @@ object MemoryBoundDrone {
     // Shuffled deck of portfolios
     val deck = Random.shuffle(0 to size-1)
 
-    // Jobs we're working on, k+1 since portf ids are 1-based
-    val jobs = for(k <- beginIndex to endIndex) yield Data(deck(k) + 1)
+    // Indices in the deck we're working on
+    // Note: k+1 since portf ids are 1-based
+    val indices = for(k <- beginIndex to endIndex) yield Data(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
-    val inputs = if(getPropertyOrElse("par",true)) loadPortfsParallel(jobs).par else loadPortfsSequential(jobs)
+    val jobs = if(getPropertyOrElse("par",true)) loadPortfsParallel(indices).par else loadPortfsSequential(indices)
 
     // Run the analysis
-    val results = inputs.map(new MemoryBoundDrone price)
+    val results = jobs.map(price)
 
     // Clock out
     val t1 = System.nanoTime
 
-    report(LOG, results, t0, t1)
-
-    (results, t0, t1)
+    Analysis(results, t0, t1)
   }
+
+  def price(job: Data): Data = {
+    // Value each bond in the portfolio
+    val t0 = System.nanoTime
+
+    // We already have to bonds in memory.
+    val value = job.bonds.foldLeft(0.0) { (sum, bond) =>
+      // Price the bond
+      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+
+      val price = valuator.price
+
+      // Updated portfolio price so far
+      sum + price
+    }
+
+    MongoHelper.updatePrice(job.portfId,value)
+
+    val t1 = System.nanoTime
+
+    // Return the result for this portfolio
+    Data(job.portfId,null,Result(job.portfId,value,job.bonds.size,t0,t1))
+  }
+
   /**
     * Loads portfolios using and their bonds into memory serially.
     */
@@ -122,7 +150,9 @@ object MemoryBoundDrone {
     * Parallel loads portfolios using and their bonds into memory using futures.
     */
   def loadPortfsParallel(jobs: GenSeq[Data]) : List[Data] = {
+    import scala.concurrent.{Await, Future}
     import scala.concurrent.ExecutionContext.Implicits.global
+
     val futures = for(input <- jobs) yield Future {
       // Select a portfolio
       val portfId = input.portfId
@@ -133,37 +163,13 @@ object MemoryBoundDrone {
 
     val list = futures.foldLeft(List[Data]()) { (list,future) =>
       import scala.concurrent.duration._
-      val result = Await.result(future, 1000 seconds)
+      import parascale.parabond.util.Constant._
+      val result = Await.result(future, MAX_WAIT_TIME seconds)
 
       // Use null because we don't have result yet -- completed when we analyze the portfolio
       Data(result.portfId, result.bonds, null) :: list
     }
 
     list
-  }
-}
-
-class MemoryBoundDrone extends Drone {
-  override def price(job: Data): Data = {
-
-    // Value each bond in the portfolio
-    val t0 = System.nanoTime
-
-    val value = job.bonds.foldLeft(0.0) { (sum, bond) =>
-      // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
-
-      val price = valuator.price
-
-      // The price into the aggregate sum
-      sum + price
-    }
-
-    MongoHelper.updatePrice(job.portfId,value)
-
-    val t1 = System.nanoTime
-
-    // Return the result for this portfolio
-    Data(job.portfId,null,Result(job.portfId,value,job.bonds.size,t0,t1))
   }
 }

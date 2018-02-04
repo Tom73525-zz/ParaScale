@@ -42,11 +42,12 @@ object Par03 {
 }
 
 /**
- * This class uses parallel collections to price n portfolios in the
- * parabond database using the fine-grain algorithm. This class differs from
+  * This class uses parallel collections to price n portfolios in the
+  * parabond database using the fine-grain algorithm. This class differs from
   * Par02 in that it does not preload the portfolio data.
- * @author Ron Coleman
- */
+  *
+  * @author Ron Coleman
+  */
 class Par03 {
   /** Initialize the random number generator */
   val ran = new Random(0)   

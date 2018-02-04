@@ -26,6 +26,13 @@
  */
 package parabond.cluster
 
-abstract class Drone {
-  def analyze: Analysis
-}
+import parascale.parabond.util.Data
+import scala.collection.GenSeq
+
+/**
+  * Results of one or more portfolio analyses
+  * @param results Detailed results
+  * @param t0 Time start
+  * @param t1 Time end
+  */
+case class Analysis(results: GenSeq[Data], t0: Long, t1: Long) extends Serializable
