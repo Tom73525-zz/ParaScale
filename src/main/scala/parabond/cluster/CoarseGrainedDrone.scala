@@ -114,10 +114,15 @@ class CoarseGrainedDrone extends Drone {
     * @return Collection of priced portfolios
     */
 
+  /**
+    * Prices a collection of tasks.
+    * Assumes tasks is a serial collection.
+    * Check above to find blocks is IndexSeq[IndexSeq[Task]]. So .par on it will be
+    * ParSeq[IndexSeq[Task]]. So tasks should be IndexSeq[Task].
+    * @param tasks Tasks
+    * @return
+    */
   def price(tasks: Seq[Task]) : Seq[Task] = {
-    // Assumes tasks is a serial collection.
-    // Check above ad find blocks is IndexSeq[IndexSeq[Task]]. So .par on it will be
-    // ParSeq[IndexSeq[Task]].
     tasks.map(naive.price)
   }
 }
