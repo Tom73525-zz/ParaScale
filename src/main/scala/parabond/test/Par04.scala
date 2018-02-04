@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Data, Helper, Result}
+import parascale.parabond.util.{Task, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
@@ -71,9 +71,9 @@ class Par04 {
 
     // Build a list the size of the number of cores of portfolio lists
     // Each core will get n/num_cores blocks of portfolios to price
-    val blocks = (1 to numCores).foldLeft(List[List[Data]]()) { (portfs, x) =>
+    val blocks = (1 to numCores).foldLeft(List[List[Task]]()) { (portfs, x) =>
       // Build a list of portfolios
-      val portf = for(i <- 0 until (n / numCores)) yield Data(ran.nextInt(100000)+1,null, null)
+      val portf = for(i <- 0 until (n / numCores)) yield Task(ran.nextInt(100000)+1,null, null)
 
       // portf is a list added as a list element to (not merged with!) the portfs list
       portf.toList :: portfs
@@ -116,8 +116,8 @@ class Par04 {
     * @param portfs Portfolios
     * @return Collection of priced portfolios
     */
-  def price(portfs: List[Data]) : List[Data] = {
-    val outputs = portfs.foldLeft(List[Data]()) { (results, portf) =>
+  def price(portfs: List[Task]) : List[Task] = {
+    val outputs = portfs.foldLeft(List[Task]()) { (results, portf) =>
       val t0 = System.nanoTime
       
       val portfId = portf.portfId
@@ -153,7 +153,7 @@ class Par04 {
       
       val t1 = System.nanoTime
     
-      Data(portfId,null,Result(portfId,value,bondIds.size,t0,t1)) :: results
+      Task(portfId,null,Result(portfId,value,bondIds.size,t0,t1)) :: results
     }
  
     outputs

@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Data, Helper, Result}
+import parascale.parabond.util.{Task, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util.{getPropertyOrElse, parseBoolean}
 
@@ -130,7 +130,7 @@ class Par01 {
    * Prices a portfolio assuming all the bonds for a portfolio are already loaded
    * into memory.
    */
-  def price(portf: Data): Data = {
+  def price(portf: Task): Task = {
     
     // Value each bond in the portfolio
     val t0 = System.nanoTime
@@ -150,7 +150,7 @@ class Par01 {
     val t1 = System.nanoTime
     
     // Return the result for this portfolio
-    Data(portf.portfId,null,Result(portf.portfId,value,portf.bonds.size,t0,t1))
+    Task(portf.portfId,null,Result(portf.portfId,value,portf.bonds.size,t0,t1))
   }  
   
   /**
@@ -158,14 +158,14 @@ class Par01 {
    * Note: This version does NOT improve performance because fold left
    * is inherently serial
    */
-  def loadPortfsParFoldLeft(n: Int): List[Data] = {
+  def loadPortfsParFoldLeft(n: Int): List[Task] = {
     val lotteries = for(i <- 0 to n) yield ran.nextInt(100000)+1 
     
-    val list = lotteries.par.foldLeft (List[Data]())
+    val list = lotteries.par.foldLeft (List[Task]())
     { (portfIdBonds,portfId) =>
       val intermediate = MongoHelper.fetchBonds(portfId)
       
-      Data(portfId,intermediate.bonds,null) :: portfIdBonds
+      Task(portfId,intermediate.bonds,null) :: portfIdBonds
     }
     
     list
@@ -174,11 +174,11 @@ class Par01 {
   /**
    * Parallel load the portfolios with embedded bonds.
    */
-  def loadPortfsParFold(n: Int): List[Data] = {    
+  def loadPortfsParFold(n: Int): List[Task] = {
     // Initialize the portfolios to retrieve
-    val portfs = for(i <- 0 until n) yield Data(ran.nextInt(100000)+1,null,null) 
+    val portfs = for(i <- 0 until n) yield Task(ran.nextInt(100000)+1,null,null)
     
-    val z = List[Data]()
+    val z = List[Task]()
     
     // Load the data into memory in parallel
     val list = portfs.par.fold(z) { (a,b) =>
@@ -195,10 +195,10 @@ class Par01 {
           opb ++ opa
         
         // If b is a Data instance, fetch the bonds and append them to the data list
-        case data : Data =>
+        case data : Task =>
           val bonds = MongoHelper.fetchBonds(data.portfId)
           
-          List(Data(data.portfId,bonds.bonds,null)) ++ opa
+          List(Task(data.portfId,bonds.bonds,null)) ++ opa
       }         
 
     }
@@ -206,9 +206,9 @@ class Par01 {
     // Cast the list to a data list
     list match {
       case l : List[_] =>
-        l.asInstanceOf[List[Data]]
+        l.asInstanceOf[List[Task]]
       case _ =>
-        List[Data]()
+        List[Task]()
     }
   }  
   
@@ -216,7 +216,7 @@ class Par01 {
    /**
    * Parallel load n portfolios and their bonds into memory (future-based).
    */
-  def loadPortfsParallel(n : Int) : ListBuffer[Data] = {
+  def loadPortfsParallel(n : Int) : ListBuffer[Task] = {
     val futures = for(_ <- 1 to n) yield Future {
       // Select a portfolio
       val lottery = ran.nextInt(100000) + 1
@@ -225,11 +225,11 @@ class Par01 {
       MongoHelper.fetchBonds(lottery)
     }
 
-    val list = futures.foldLeft(ListBuffer[Data]()) { (list,future) =>
+    val list = futures.foldLeft(ListBuffer[Task]()) { (list, future) =>
       import scala.concurrent.duration._
       val result = Await.result(future, 100 seconds)
 
-      list ++ List(Data(result.portfId, result.bonds, null))
+      list ++ List(Task(result.portfId, result.bonds, null))
     }
 
     list

@@ -30,7 +30,7 @@ import org.apache.log4j.Logger
 import parabond.cluster.NaiveDrone.LOG
 import parabond.mr.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Data, Helper, Result}
+import parascale.parabond.util.{Task, Helper, Result}
 import parascale.parabond.util.Constant.NUM_PORTFOLIOS
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util.getPropertyOrElse
@@ -69,13 +69,13 @@ class NaiveDrone extends Drone {
     val end = begin + n
 
     // The jobs working on, k+1 since portf ids are 1-based
-    val indices = for(k <- begin to end) yield Data(deck(k) + 1)
+    val indices = for(k <- begin to end) yield Task(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
-    val jobs = if(getPropertyOrElse("par", true)) indices.par else indices
+    val tasks = if(getPropertyOrElse("par", true)) indices.par else indices
 
     // Run the analysis
-    val results = jobs.map(price)
+    val results = tasks.map(price)
 
     // Clock out
     val t1 = System.nanoTime
@@ -90,12 +90,12 @@ class NaiveDrone extends Drone {
     * 2) fetch bonds in that portfolio.<p>
     * After the second fetch the bond is then valued and added to the portfoio value
     */
-  def price(job: Data): Data = {
+  def price(task: Task): Task = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // Retrieve the portfolio
-    val portfId = job.portfId
+    val portfId = task.portfId
 
     val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -127,6 +127,6 @@ class NaiveDrone extends Drone {
 
     val t1 = System.nanoTime
 
-    Data(portfId,job.bonds,Result(portfId,value,bondIds.size,t0,t1))
+    Task(portfId,task.bonds,Result(portfId,value,bondIds.size,t0,t1))
   }
 }

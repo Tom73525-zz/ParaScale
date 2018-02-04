@@ -32,7 +32,7 @@ import parabond.mr.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.casa.MongoHelper.{PortfIdToBondsMap, bondCollection, mongo}
 import parascale.parabond.entry.SimpleBond
-import parascale.parabond.util.{Data, Helper, Result}
+import parascale.parabond.util.{Task, Helper, Result}
 import parascale.parabond.util.Constant.NUM_PORTFOLIOS
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util.getPropertyOrElse
@@ -72,13 +72,13 @@ class MemoryBoundDrone extends Drone {
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
-    val indices = for(k <- beginIndex to endIndex) yield Data(deck(k) + 1)
+    val indices = for(k <- beginIndex to endIndex) yield Task(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
-    val jobs = if(getPropertyOrElse("par",true)) loadPortfsParallel(indices).par else loadPortfsSequential(indices)
+    val tasks = if(getPropertyOrElse("par",true)) loadPortfsParallel(indices).par else loadPortfsSequential(indices)
 
     // Run the analysis
-    val results = jobs.map(price)
+    val results = tasks.map(price)
 
     // Clock out
     val t1 = System.nanoTime
@@ -86,12 +86,12 @@ class MemoryBoundDrone extends Drone {
     Analysis(results, t0, t1)
   }
 
-  def price(job: Data): Data = {
+  def price(task: Task): Task = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // We already have to bonds in memory.
-    val value = job.bonds.foldLeft(0.0) { (sum, bond) =>
+    val value = task.bonds.foldLeft(0.0) { (sum, bond) =>
       // Price the bond
       val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
 
@@ -101,22 +101,22 @@ class MemoryBoundDrone extends Drone {
       sum + price
     }
 
-    MongoHelper.updatePrice(job.portfId,value)
+    MongoHelper.updatePrice(task.portfId,value)
 
     val t1 = System.nanoTime
 
     // Return the result for this portfolio
-    Data(job.portfId,null,Result(job.portfId,value,job.bonds.size,t0,t1))
+    Task(task.portfId,null,Result(task.portfId,value,task.bonds.size,t0,t1))
   }
 
   /**
     * Loads portfolios using and their bonds into memory serially.
     */
-  def loadPortfsSequential(jobs: Seq[Data]) : Seq[Data] = {
+  def loadPortfsSequential(tasks: Seq[Task]) : Seq[Task] = {
     // Connect to the portfolio collection
     val portfsCollecton = mongo("Portfolios")
 
-    val portfIdToBondsPairs = jobs.foldLeft(List[Data] ()) { (list, input) =>
+    val portfIdToBondsPairs = tasks.foldLeft(List[Task] ()) { (list, input) =>
       // Select a portfolio
       val portfId = input.portfId
 
@@ -140,7 +140,7 @@ class MemoryBoundDrone extends Drone {
         bonds ++ List(bond)
       }
 
-      Data(portfId,bonds,null) :: list
+      Task(portfId,bonds,null) :: list
     }
 
     portfIdToBondsPairs
@@ -149,11 +149,11 @@ class MemoryBoundDrone extends Drone {
   /**
     * Parallel loads portfolios using and their bonds into memory using futures.
     */
-  def loadPortfsParallel(jobs: GenSeq[Data]) : List[Data] = {
+  def loadPortfsParallel(tasks: GenSeq[Task]) : List[Task] = {
     import scala.concurrent.{Await, Future}
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    val futures = for(input <- jobs) yield Future {
+    val futures = for(input <- tasks) yield Future {
       // Select a portfolio
       val portfId = input.portfId
 
@@ -161,13 +161,13 @@ class MemoryBoundDrone extends Drone {
       MongoHelper.fetchBonds(portfId)
     }
 
-    val list = futures.foldLeft(List[Data]()) { (list,future) =>
+    val list = futures.foldLeft(List[Task]()) { (list, future) =>
       import scala.concurrent.duration._
       import parascale.parabond.util.Constant._
       val result = Await.result(future, MAX_WAIT_TIME seconds)
 
       // Use null because we don't have result yet -- completed when we analyze the portfolio
-      Data(result.portfId, result.bonds, null) :: list
+      Task(result.portfId, result.bonds, null) :: list
     }
 
     list

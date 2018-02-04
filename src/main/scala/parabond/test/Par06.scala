@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.util.{Data, Helper, Result}
+import parascale.parabond.util.{Task, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
@@ -119,7 +119,7 @@ class Par06 {
     println(me+" DONE! %d %7.4f".format(n,dtN))
   }
 
-  def price(portf: Data): Data = {
+  def price(portf: Task): Task = {
 
     // Value each bond in the portfolio
     val t0 = System.nanoTime
@@ -143,7 +143,7 @@ class Par06 {
 
     val t1 = System.nanoTime
 
-    Data(portf.portfId,null,Result(portf.portfId,output.maturity,portf.bonds.size,t0,t1))
+    Task(portf.portfId,null,Result(portf.portfId,output.maturity,portf.bonds.size,t0,t1))
   }  
 
   def sum(a: SimpleBond, b:SimpleBond) : SimpleBond = {
@@ -154,11 +154,11 @@ class Par06 {
    * Parallel load the portfolios with embedded bonds.
    * Note: This version uses parallel fold to reduce all the
    */
-  def loadPortfsParFold(n: Int): List[Data] = {  
+  def loadPortfsParFold(n: Int): List[Task] = {
     // Initialize the portfolios to retrieve
-    val portfs = for(i <- 0 until n) yield Data(ran.nextInt(100000)+1,null,null) 
+    val portfs = for(i <- 0 until n) yield Task(ran.nextInt(100000)+1,null,null)
     
-    val z = List[Data]()
+    val z = List[Task]()
     
     val list = portfs.par.fold(z) { (a,b) =>
       // Make a into list (it already is one but this tells Scala it's one)
@@ -174,19 +174,19 @@ class Par06 {
           opb ++ opa
         
         // If b is a data, append the data to the list
-        case x : Data =>
+        case x : Task =>
           val intermediate = MongoHelper.fetchBonds(x.portfId) 
           
-          List(Data(x.portfId,intermediate.bonds,null)) ++ opa
+          List(Task(x.portfId,intermediate.bonds,null)) ++ opa
       }         
 
     }
     
     list match {
       case l : List[_] =>
-        l.asInstanceOf[List[Data]]
+        l.asInstanceOf[List[Task]]
       case _ =>
-        List[Data]()
+        List[Task]()
     }
   }    
   

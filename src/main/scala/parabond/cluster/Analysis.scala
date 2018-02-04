@@ -26,13 +26,14 @@
  */
 package parabond.cluster
 
-import parascale.parabond.util.Data
+import parascale.parabond.util.Task
 import scala.collection.GenSeq
 
 /**
-  * Results of one or more portfolio analyses
+  * Results of one or more portfolio analyses.
+  * Class is serializable in event we need to transmit it.
   * @param results Detailed results
   * @param t0 Time start
   * @param t1 Time end
   */
-case class Analysis(results: GenSeq[Data], t0: Long, t1: Long) extends Serializable
+case class Analysis(results: GenSeq[Task], t0: Long, t1: Long) extends Serializable

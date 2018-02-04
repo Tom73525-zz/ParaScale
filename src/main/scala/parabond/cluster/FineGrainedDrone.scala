@@ -29,7 +29,7 @@ package parabond.cluster
 import org.apache.log4j.Logger
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.entry.SimpleBond
-import parascale.parabond.util.{Data, Helper, Result}
+import parascale.parabond.util.{Task, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 
 object FineGrainedDrone extends App {
@@ -43,15 +43,15 @@ object FineGrainedDrone extends App {
 class FineGrainedDrone extends NaiveDrone {
   /**
     * Price a portfolio
-    * @param job Portfolio
+    * @param task Portfolio ids
     * @return Valuation
     */
-  override def price(job: Data): Data = {
+  override def price(task: Task): Task = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // Retrieve the portfolio
-    val portfId = job.portfId
+    val portfId = task.portfId
 
     val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -60,7 +60,7 @@ class FineGrainedDrone extends NaiveDrone {
     // Get the bonds in the portfolio
     val bids = MongoHelper.asList(portfsCursor,"instruments")
 
-    val bondIds = for(i <- 0 until bids.size) yield Data(bids(i),null,null)
+    val bondIds = for(i <- 0 until bids.size) yield Task(bids(i),null,null)
 
     val output = bondIds.par.map { bondId =>
       // Get the bond from the bond collection
@@ -77,11 +77,11 @@ class FineGrainedDrone extends NaiveDrone {
       new SimpleBond(bond.id,bond.coupon,bond.freq,bond.tenor,price)
     }.reduce(sum)
 
-    MongoHelper.updatePrice(job.portfId,output.maturity)
+    MongoHelper.updatePrice(task.portfId,output.maturity)
 
     val t1 = System.nanoTime
 
-    Data(job.portfId, null, Result(job.portfId, output.maturity, bondIds.size, t0, t1))
+    Task(task.portfId, null, Result(task.portfId, output.maturity, bondIds.size, t0, t1))
   }
 
   /**

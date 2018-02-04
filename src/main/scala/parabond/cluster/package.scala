@@ -28,7 +28,7 @@ package parabond
 
 import org.apache.log4j.Logger
 import parabond.mr.PORTF_NUM
-import parascale.parabond.util.{Data, Helper}
+import parascale.parabond.util.{Task, Helper}
 import parascale.util.getPropertyOrElse
 
 import scala.collection.GenSeq
@@ -37,24 +37,20 @@ import scala.collection.parallel.ParSeq
 package object cluster {
   /**
     * Converts nano-seconds to seconds implicitly.
-    * TODO: find more elegant want to do this with single class.
     * See https://alvinalexander.com/scala/scala-how-to-add-new-methods-to-existing-classes
     * @param dt Time
     */
-  class NanoTimeLong(dt: Long) {
-    def seconds = dt / 1000000000.0
-  }
-
-  class NanoTimeDouble(dt: Double) {
+  class NanoToSecondsCoverter(dt: Double) {
+    def this(t: Long) = this(t.toDouble)
     def seconds = dt / 1000000000.0
   }
 
   // Compiler may complain without this import
   import scala.language.implicitConversions
 
-  // Actual implicit conversion
-  implicit def nanoSecondsToSeconds(dt: Long) = new NanoTimeLong(dt)
-  implicit def nanoSecondsToSeconds(dt: Double) = new NanoTimeDouble(dt)
+  // Actual implicit conversions
+  implicit def nanoSecondsToSeconds(dt: Long) = new NanoToSecondsCoverter(dt)
+  implicit def nanoSecondsToSeconds(dt: Double) = new NanoToSecondsCoverter(dt)
 
   /**
     * Writes a report to the diagnostic log
@@ -66,9 +62,11 @@ package object cluster {
     val details = getPropertyOrElse("details",false)
 
     val results = analysis.results
-    val t0 = analysis.t0
+
     if(details) {
       log.info("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
+
+      val t0 = analysis.t0
 
       results.foreach { output =>
         val id = output.portfId

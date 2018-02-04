@@ -29,7 +29,7 @@ package parabond.cluster
 import org.apache.log4j.Logger
 import parabond.mr.PORTF_NUM
 import parascale.parabond.util.Constant.NUM_PORTFOLIOS
-import parascale.parabond.util.Data
+import parascale.parabond.util.Task
 import parascale.util.getPropertyOrElse
 import scala.util.Random
 
@@ -82,7 +82,7 @@ class CoarseGrainedDrone extends Drone {
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
-    val indices = for(k <- begin to end) yield Data(deck(k) + 1)
+    val indices = for(k <- begin to end) yield Task(deck(k) + 1)
 
     // Block the indices according to number of cores: each core gets a single clock.
     val numCores = getPropertyOrElse("cores",Runtime.getRuntime.availableProcessors)
@@ -110,12 +110,12 @@ class CoarseGrainedDrone extends Drone {
 
   /**
     * Price a collection of portfolios.
-    * @param jobs Portfolios
+    * @param tasks Portfolios
     * @return Collection of priced portfolios
     */
 
-  def price(jobs: Seq[Data]) : Seq[Data] = {
+  def price(tasks: Seq[Task]) : Seq[Task] = {
     // We can do this because each job specified by the data passes through the naive map.
-    jobs.map(naive.price)
+    tasks.map(naive.price)
   }
 }
