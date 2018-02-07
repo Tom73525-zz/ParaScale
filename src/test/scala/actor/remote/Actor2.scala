@@ -27,7 +27,7 @@ class Actor2 extends Actor {
           task.payload match {
             case a: A =>
               LOG.info("payload is A = " + a.s)
-              task.reply("received your A")
+              sender ! "received your A"
 
             case s: String =>
               LOG.info("got "+s)

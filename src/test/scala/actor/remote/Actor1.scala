@@ -2,7 +2,7 @@ package actor.remote
 
 import java.net.InetAddress
 import org.apache.log4j.Logger
-import parascale.actor.remote.last.{Actor, Relay, Task}
+import parascale.actor.remote.last.{Actor, RemoteRelay, Task}
 
 object Actor1 extends App {
   val LOG =  Logger.getLogger(getClass)
@@ -15,7 +15,7 @@ object Actor1 extends App {
   val destPort = 9000
   val socket = destAddr + ":" + destPort
 
-  val relay = new Relay(socket, actor1)
+  val relay = new RemoteRelay(socket, actor1)
 
   relay ! A("got it!")
 }

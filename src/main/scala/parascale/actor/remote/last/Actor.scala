@@ -24,9 +24,9 @@ package parascale.actor.remote.last
 
 object Actor {
   scala.collection.mutable.Map
-  var directory = Map[Long, Actor]()
+  var actors = Map[Long, Actor]()
 
-  def lookup(_num: Long) = directory.find { entry =>
+  def lookup(_num: Long) = actors.find { entry =>
     val (num, actor) = entry
     num == _num
   }
@@ -39,6 +39,8 @@ trait Actor extends Runnable {
   // Mailbox used by the actor
   val mailbox = new Mailbox[Task]
 
+  var sender = new Sender
+
   // Automatically starts the actor by invoking its run method
   val me = new Thread(this)
   me.start
@@ -48,8 +50,11 @@ trait Actor extends Runnable {
 
   /** Performs any startup chores then runs the actor */
   final override def run = {
-    import Actor._
-    directory += (id -> this)
+    // Give main thread chance to run
+    Thread.`yield`()
+
+    // Add this actor to the directory
+    Actor.actors += (id -> this)
 
     act
   }
@@ -78,7 +83,13 @@ trait Actor extends Runnable {
   }
 
   /** Retrieves a task from the mailbox.*/
-  def receive: Task = mailbox.remove
+  def receive: Task = {
+    val task = mailbox.remove
+
+    sender = new Sender(task)
+
+    task
+  }
 
   /**
     * Sends a message to this actor.
@@ -97,4 +108,31 @@ trait Actor extends Runnable {
     * @return String representation
     */
   override def toString = this.getClass.getSimpleName + " (id="+id+")"
+}
+
+/**
+  * This class adds syntactic sugar to look more Akka-like for making replies.
+  * @param task Task to reply to.
+  */
+class Sender(task: Task) {
+  def this() = this(null)
+
+  /**
+    * Sends a reply based on the member task.
+    * @param that Reply
+    */
+  def send(that: Any): Unit = {
+    if(task == null)
+      return
+
+    task.reply(that)
+  }
+
+  /**
+    * Sends a reply.
+    * @param that Reply
+    */
+  def !(that: Any): Unit = {
+    send(that)
+  }
 }

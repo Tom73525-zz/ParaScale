@@ -22,13 +22,13 @@
  */
 package parascale.actor.remote.last
 
-import java.io.{ObjectInputStream, ObjectOutputStream}
+import java.io.ObjectOutputStream
 import java.net.{InetAddress, ServerSocket, Socket}
 
 /**
   * This object binds an actor for reply purposes to a destination host.
   */
-object Relay {
+object RemoteRelay {
   val DEFAULT_PORT = 9000
 
   /**
@@ -37,7 +37,7 @@ object Relay {
     * @param callback Callback actor for replies.
     * @return
     */
-  def apply(hostSocket: String, callback: Actor) = new Relay(hostSocket,callback)
+  def apply(hostSocket: String, callback: Actor) = new RemoteRelay(hostSocket,callback)
 }
 
 /**
@@ -45,7 +45,7 @@ object Relay {
   * @param hostSocket Destination host address
   * @param callback Actor to receive replies.
   */
-class Relay(hostSocket: String, callback: Actor) extends Actor {
+class RemoteRelay(hostSocket: String, callback: Actor) extends Actor {
   import org.apache.log4j.Logger
   val LOG =  Logger.getLogger(getClass)
 
@@ -53,7 +53,7 @@ class Relay(hostSocket: String, callback: Actor) extends Actor {
   val params = hostSocket.split(":")
 
   val destAddr = params(0)
-  val destPort = if(params.length == 2) params(1).toInt else Relay.DEFAULT_PORT
+  val destPort = if(params.length == 2) params(1).toInt else RemoteRelay.DEFAULT_PORT
   LOG.info("relaying all messages to "+destAddr+":"+destPort)
 
   // Initialize reply target
