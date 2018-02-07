@@ -69,7 +69,7 @@ package object perfect {
     * @param number Number
     * @return sum of factors
     */
-  def sumOfFactors_(number: Long) = {
+  def _sumOfFactors(number: Long) = {
     var i = 1L
     var sum = 0L
     while(i <= number.toLong) {
@@ -99,7 +99,7 @@ package object perfect {
     * @param number Number
     * @return Sum of factors
     */
-  def sumOfFactorsInRange_(lower: Long, upper: Long, number: Long): Long = {
+  def _sumOfFactorsInRange(lower: Long, upper: Long, number: Long): Long = {
     var index: Long = lower
 
     var sum = 0L

@@ -22,7 +22,7 @@
  */
 package parascale.mapreduce
 
-import parascale.future.perfect.{ask, candidates, sumOfFactorsInRange_}
+import parascale.future.perfect.{ask, candidates, _sumOfFactorsInRange}
 
 object MrFuturePerfectNumberFinder extends App {
   (0 until candidates.length).foreach { index =>
@@ -49,7 +49,7 @@ object MrFuturePerfectNumberFinder extends App {
       Future {
         val (lower, upper) = lowerUpper
 
-        sumOfFactorsInRange_(lower, upper, candidate)
+        _sumOfFactorsInRange(lower, upper, candidate)
       }
     }
 

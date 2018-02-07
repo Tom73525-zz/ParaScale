@@ -1,6 +1,7 @@
 package actor.local
 
-import parascale.actor.remote.last.{Actor, RemoteRelay, Task}
+import parascale.actor.last.{Actor, Task}
+import parascale.actor.remote.last.{Actor, RemoteRelay}
 
 class Actor2 extends Actor {
   def act: Unit = {

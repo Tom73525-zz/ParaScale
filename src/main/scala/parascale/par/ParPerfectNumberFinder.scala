@@ -22,7 +22,7 @@
  */
 package parascale.par
 
-import parascale.future.perfect.{ask, sumOfFactorsInRange_, candidates}
+import parascale.future.perfect.{ask, _sumOfFactorsInRange, candidates}
 
 object ParPerfectNumberFinder extends App {
   (0 until candidates.length).foreach { index =>
@@ -50,7 +50,7 @@ object ParPerfectNumberFinder extends App {
 
     val sums = ranges.par.map { lowerUpper =>
       val (lower, upper) = lowerUpper
-      sumOfFactorsInRange_(lower, upper, candidate)
+      _sumOfFactorsInRange(lower, upper, candidate)
     }
 
     val total = sums.reduce { (a, b) =>

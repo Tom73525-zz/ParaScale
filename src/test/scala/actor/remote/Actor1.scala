@@ -1,8 +1,10 @@
 package actor.remote
 
 import java.net.InetAddress
+
 import org.apache.log4j.Logger
-import parascale.actor.remote.last.{Actor, RemoteRelay, Task}
+import parascale.actor.last.{Actor, RemoteRelay, Task}
+import parascale.actor.remote.last.{Actor, RemoteRelay}
 
 object Actor1 extends App {
   val LOG =  Logger.getLogger(getClass)

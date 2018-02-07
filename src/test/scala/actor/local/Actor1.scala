@@ -6,7 +6,8 @@ object Actor1 extends App {
   val actor1 = new Actor1(actor2)
 }
 
-import parascale.actor.remote.last.{Actor, RemoteRelay, Task}
+import parascale.actor.last.{Actor, Task}
+import parascale.actor.remote.last.{Actor, RemoteRelay}
 
 class Actor1(actor2: Actor) extends Actor {
   def act: Unit = {

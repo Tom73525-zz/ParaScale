@@ -20,12 +20,12 @@ object Example2 extends App {
     case Success(value) => println(s"Got the callback, meaning = $value")
     case Failure(e) => e.printStackTrace
   }
-  // do the rest of your work
-//  println("A ..."); sleep(100)
-//  println("B ..."); sleep(100)
-//  println("C ..."); sleep(100)
-//  println("D ..."); sleep(100)
-//  println("E ..."); sleep(100)
-//  println("F ..."); sleep(100)
-//  sleep(2000)
+   // do the rest of your work
+  println("A ..."); sleep(100)
+  println("B ..."); sleep(100)
+  println("C ..."); sleep(100)
+  println("D ..."); sleep(100)
+  println("E ..."); sleep(100)
+  println("F ..."); sleep(100)
+  sleep(2000)
 }

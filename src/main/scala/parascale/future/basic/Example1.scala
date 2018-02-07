@@ -1,6 +1,5 @@
 package parascale.future.basic
 
-
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global

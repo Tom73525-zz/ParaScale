@@ -1,4 +1,4 @@
-package parascale.actor.remote.last
+package parascale.actor.last
 
 import java.io.ObjectOutputStream
 import java.net.{InetAddress, Socket}

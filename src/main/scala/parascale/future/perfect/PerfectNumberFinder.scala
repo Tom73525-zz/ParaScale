@@ -43,5 +43,5 @@ object PerfectNumberFinder extends App {
     * @param candidate Candidate number
     * @return True if candidate is perfect, false otherwise
     */
-  def isPerfect_(candidate: Long) = 2 * candidate == sumOfFactors_(candidate)
+  def isPerfect_(candidate: Long) = 2 * candidate == _sumOfFactors(candidate)
 }
