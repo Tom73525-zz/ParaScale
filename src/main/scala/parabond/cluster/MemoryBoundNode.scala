@@ -27,7 +27,7 @@
 package parabond.cluster
 
 import org.apache.log4j.Logger
-import parabond.cluster.MemoryBoundDrone.LOG
+import parabond.cluster.MemoryBoundNode.LOG
 import parabond.mr.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.casa.MongoHelper.{PortfIdToBondsMap, bondCollection, mongo}
@@ -39,18 +39,18 @@ import parascale.util.getPropertyOrElse
 import scala.collection.GenSeq
 import scala.util.Random
 
-object MemoryBoundDrone extends App {
+object MemoryBoundNode extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new MemoryBoundDrone analyze
+  val analysis = new MemoryBoundNode analyze
 
   report(LOG, analysis)
 }
 
 /**
-  * Loads all the bonds of all the portfolios into memory then prices each portfolio per core.
+  * Prices one portfolio per core by first loading all the bonds of a portfolio into memory.
   */
-class MemoryBoundDrone extends Drone {
+class MemoryBoundNode extends Node {
   def analyze: Analysis = {
     // Clock in
     val t0 = System.nanoTime

@@ -27,8 +27,8 @@
 package parabond.cluster
 
 /**
-  * Base drone class.
+  * Base node class.
   */
-abstract class Drone {
+abstract class Node {
   def analyze: Analysis
 }

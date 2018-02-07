@@ -1,4 +1,4 @@
-package actor
+package actor.remote
 
 import org.apache.log4j.Logger
 import parascale.actor.remote.last.{Actor, Remote, Task}

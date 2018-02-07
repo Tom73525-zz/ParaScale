@@ -1,7 +1,6 @@
-package actor
+package actor.remote
 
 import java.net.InetAddress
-
 import org.apache.log4j.Logger
 import parascale.actor.remote.last.{Actor, Relay, Task}
 

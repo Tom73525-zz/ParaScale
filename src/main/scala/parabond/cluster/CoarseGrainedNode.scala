@@ -34,12 +34,12 @@ import parascale.util.getPropertyOrElse
 import scala.util.Random
 
 /**
-  * This object starts the analysis and runs the analysis report.
+  * Prices a block of portfolio per core.
   */
-object CoarseGrainedDrone extends App {
+object CoarseGrainedNode extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new CoarseGrainedDrone analyze
+  val analysis = new CoarseGrainedNode analyze
 
   report(LOG, analysis)
 }
@@ -47,12 +47,12 @@ object CoarseGrainedDrone extends App {
 /**
   * Prices a block of portfolios per core.
   */
-class CoarseGrainedDrone extends Drone {
+class CoarseGrainedNode extends Node {
   /**
     * Prices each portfolio
     * @return
     */
-  def naive = new NaiveDrone
+  def naive = new BasicNode
 
   /**
     * Runs the portfolio analyses.

@@ -22,6 +22,16 @@
  */
 package parascale.actor.remote.last
 
+object Actor {
+  scala.collection.mutable.Map
+  var directory = Map[Long, Actor]()
+
+  def lookup(_num: Long) = directory.find { entry =>
+    val (num, actor) = entry
+    num == _num
+  }
+}
+
 /**
   * Base level definition of an actor. Subclasses started automatically when the actor gets instantiated.
   */
@@ -38,21 +48,33 @@ trait Actor extends Runnable {
 
   /** Performs any startup chores then runs the actor */
   final override def run = {
+    import Actor._
+    directory += (id -> this)
+
     act
   }
 
   /**
     * Deposits a task in actor mailbox.
     * @param that Message
+    * @param sender Sender of this message enables local replies.
     */
-  def send(that: Any): Unit = {
+  def send(that: Any, sender: Actor): Unit = {
     that match {
       case task: Task =>
         mailbox.add(task)
 
       case _ =>
-        mailbox.add(Task(Task.LOCAT_HOST, that))
+        mailbox.add(Task(Task.LOCAL_HOST, that, sender.id))
     }
+  }
+
+  /**
+    * Sends a message without possiblity of replies.
+    * @param that
+    */
+  def send(that: Any): Unit = {
+    send(that, this)
   }
 
   /** Retrieves a task from the mailbox.*/

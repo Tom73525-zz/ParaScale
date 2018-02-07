@@ -85,11 +85,15 @@ class Relay(hostSocket: String, callback: Actor) extends Actor {
     * @param that A message
     */
   override def send(that: Any): Unit = {
+    send(that, callback)
+  }
+
+  override def send(that: Any, sender: Actor): Unit = {
     val task = that match {
       case t: Task =>
         t
       case _ =>
-         Task(replyAddr+":"+replyPort, that)
+        Task(replyAddr+":"+replyPort, that, sender.id)
     }
 
     LOG.info("relaying "+that+" as "+task)
