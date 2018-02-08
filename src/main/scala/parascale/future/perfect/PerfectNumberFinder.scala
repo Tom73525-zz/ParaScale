@@ -28,7 +28,7 @@ package parascale.future.perfect
 object PerfectNumberFinder extends App {
   (0 until candidates.length).foreach { index =>
     val num = candidates(index)
-    println(num + " is perfect? "+ ask(isPerfect_,num))
+    println(num + " is perfect? "+ ask(_isPerfect,num))
   }
 
   /**
@@ -43,5 +43,5 @@ object PerfectNumberFinder extends App {
     * @param candidate Candidate number
     * @return True if candidate is perfect, false otherwise
     */
-  def isPerfect_(candidate: Long) = 2 * candidate == _sumOfFactors(candidate)
+  def _isPerfect(candidate: Long) = 2 * candidate == _sumOfFactors(candidate)
 }
