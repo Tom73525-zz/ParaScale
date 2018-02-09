@@ -51,7 +51,7 @@ trait Actor extends Runnable {
   /** Performs any startup chores then runs the actor */
   final override def run = {
     // Give main thread chance to run
-    Thread.`yield`()
+    Thread.sleep(250)
 
     // Add this actor to the directory
     Actor.actors += (id -> this)

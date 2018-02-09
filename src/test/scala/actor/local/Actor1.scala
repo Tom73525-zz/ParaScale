@@ -7,7 +7,7 @@ object Actor1 extends App {
 }
 
 import parascale.actor.last.{Actor, Task}
-import parascale.actor.remote.last.{Actor, RemoteRelay}
+import parascale.actor.last.{Actor, RemoteRelay}
 
 class Actor1(actor2: Actor) extends Actor {
   def act: Unit = {

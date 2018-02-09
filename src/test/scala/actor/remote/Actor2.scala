@@ -2,7 +2,7 @@ package actor.remote
 
 import org.apache.log4j.Logger
 import parascale.actor.last.{Actor, Remote, Task}
-import parascale.actor.remote.last.{Actor, Remote}
+import parascale.actor.last.{Actor, Remote}
 import parascale.util.getPropertyOrElse
 
 object Actor2 extends App {

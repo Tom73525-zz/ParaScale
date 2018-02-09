@@ -25,7 +25,7 @@ package parascale.actor.last
 import java.io.EOFException
 import java.net.ServerSocket
 
-abstract class RemoteActor(port: Int) extends Actor {
+abstract class Worker(port: Int) extends Actor {
   Remote(port, this)
 }
 
