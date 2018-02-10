@@ -9,14 +9,14 @@ object MyDispatcher1 extends App {
 }
 
 class MyDispatcher1(workers: List[String]) extends Dispatcher(workers) {
-  println(relays)
+  println(workers)
   println(workers)
   def act: Unit = {
 //    Thread.sleep(250)
     println("worker len = "+workers.length)
     (0 until workers.length).foreach { k =>
       println("sending message to worker " + k)
-      relays(k) ! "to worker(" + k + ") hello from dispatcher"
+      workers(k) ! "to worker(" + k + ") hello from dispatcher"
     }
 
     while (true)

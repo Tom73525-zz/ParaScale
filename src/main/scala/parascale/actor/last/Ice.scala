@@ -28,26 +28,31 @@ import java.net.Socket
 /**
   * Inbound connection entity (ICE).
   *
-  * @param socket Inbound socket connection.
-  * @param handler Outbound callback handler
+  * @param socket Inbound client socket.
+  * @param callback Outbound callback handler
   */
-class Ice(socket: Socket, handler: Actor) extends Runnable {
+class Ice(socket: Socket, callback: Actor) extends Runnable {
   import org.apache.log4j.Logger
   val LOG =  Logger.getLogger(getClass)
 
   /** Runs reply arrivals and handing off to callback actor */
   override def run = {
     LOG.info("ice started (id="+Thread.currentThread.getId+")")
+
+    // Open the connection
     val ois = new ObjectInputStream(socket.getInputStream)
 
+    // Deserialize the object
     val msg = ois.readObject
 
     LOG.info("received inbound message = " + msg)
-    LOG.info("actor handler = " + handler)
+    LOG.info("actor handler = " + callback)
 
-    handler.send(msg)
+    // Forward the message
+    callback.send(msg)
     LOG.info("successfully relayed " + msg)
 
+    // Release the connection
     ois.close
     socket.close
   }

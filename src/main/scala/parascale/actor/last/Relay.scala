@@ -28,7 +28,7 @@ import java.net.{InetAddress, ServerSocket, Socket}
 /**
   * This object binds an actor for reply purposes to a destination host.
   */
-object RemoteRelay {
+object Relay {
   val DEFAULT_PORT = 9000
 
   /**
@@ -37,28 +37,28 @@ object RemoteRelay {
     * @param callback Callback actor for replies.
     * @return
     */
-  def apply(hostSocket: String, callback: Actor) = new RemoteRelay(hostSocket,callback)
+  def apply(hostSocket: String, callback: Actor) = new Relay(hostSocket,callback)
 }
 
 /**
   * This class is an actor which relays message from the local (or srouce host) to a remote (or destination) host.
-  * @param hostSocket Destination host address
+  * @param forward Destination forwarding socket
   * @param callback Actor to receive replies.
   */
-class RemoteRelay(hostSocket: String, callback: Actor) extends Actor {
+class Relay(forward: String, callback: Actor) extends Actor {
   import org.apache.log4j.Logger
   val LOG =  Logger.getLogger(getClass)
 
-  // Initialize sending parameters
-  val params = hostSocket.split(":")
+  // Initialize forwarding parameters
+  val params = forward.split(":")
 
-  val destAddr = params(0)
-  val destPort = if(params.length == 2) params(1).toInt else RemoteRelay.DEFAULT_PORT
-  LOG.info("relaying all messages to "+destAddr+":"+destPort)
+  val forwardAddr = params(0)
+  val forwardPort = if(params.length == 2) params(1).toInt else Relay.DEFAULT_PORT
+  LOG.info("relaying all messages to "+forwardAddr+":"+forwardPort)
 
   // Initialize reply target
   val replyAddr =  InetAddress.getLocalHost.getHostAddress
-  val replyPort = destPort + Thread.activeCount
+  val replyPort = forwardPort + Thread.activeCount
   LOG.info("listening for replies on "+replyAddr+":"+replyPort)
 
   /** Runs the worker thread to receive replies. */
@@ -98,7 +98,7 @@ class RemoteRelay(hostSocket: String, callback: Actor) extends Actor {
 
     LOG.info("relaying "+that+" as "+task)
 
-    val socket = new Socket(destAddr, destPort)
+    val socket = new Socket(forwardAddr, forwardPort)
 
     val os = socket.getOutputStream
     val oos = new ObjectOutputStream(os)
@@ -110,7 +110,7 @@ class RemoteRelay(hostSocket: String, callback: Actor) extends Actor {
 
     os.close
 
-    LOG.info("successfully sent "+task+" to "+destAddr+":"+destPort)
+    LOG.info("successfully sent "+task+" to "+forwardAddr+":"+forwardPort)
   }
 }
 
