@@ -21,12 +21,12 @@ object Task {
   * @param payload Payload
   * @param kind Kind of task
   */
-case class Task(src: String, payload: Any, id: Long, kind: Int = Task.TASK) extends Serializable {
+case class Task(src: String, payload: Any, actorId: Long, kind: Int = Task.TASK) extends Serializable {
   def reply(that: Any): Unit = {
     import Task._
 
     // Wrap that if necessary in a task for a reply
-    println("Task.reply invoked id = "+id)
+    println("Task.reply invoked id = "+actorId)
     val task = that match {
       case task: Task =>
         task
@@ -60,7 +60,7 @@ case class Task(src: String, payload: Any, id: Long, kind: Int = Task.TASK) exte
         os.close
       case _ =>
         // Otherwise port is not valid, look up the actor to see if it is on this host
-        Actor.lookup(id) match {
+        Actor.lookup(actorId) match {
           case Some(entry) =>
             val (_, actor) = entry
 
@@ -68,7 +68,7 @@ case class Task(src: String, payload: Any, id: Long, kind: Int = Task.TASK) exte
             actor ! Task(task.src, task.payload, -1, REPLY)
 
           case None =>
-            Console.err.println("bad actor id = "+id+" dropping reply")
+            Console.err.println("bad actor id = "+actorId+" dropping reply")
         }
     }
   }

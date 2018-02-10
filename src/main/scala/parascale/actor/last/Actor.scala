@@ -22,10 +22,21 @@
  */
 package parascale.actor.last
 
+/**
+  * This object contains a directory of actors ids -> actors for replies between actors
+  * in the same JVM. Remote replies are handled through port numbers.
+  * @see actor.last.Relay, actor.last.Remote
+  */
 object Actor {
   scala.collection.mutable.Map
+  // Directory of actors of this JVM
   var actors = Map[Long, Actor]()
 
+  /**
+    * Looks an actor by its id.
+    * @param _num
+    * @return
+    */
   def lookup(_num: Long) = actors.find { entry =>
     val (num, actor) = entry
     num == _num
@@ -53,9 +64,10 @@ trait Actor extends Runnable {
     // Give main thread chance to run
     Thread.sleep(250)
 
-    // Add this actor to the directory
+    // Add this actor by id to the directory of actors
     Actor.actors += (id -> this)
 
+    // Run the actor
     act
   }
 
