@@ -39,12 +39,12 @@ object FuturePerfectNumberFinder extends App {
   def isPerfectConcurrent(candidate: Long): Boolean = {
     val RANGE = 1000000L
 
-    val numberOfPartitions = (candidate.toDouble / RANGE).ceil.toInt
+    val numPartitions = (candidate.toDouble / RANGE).ceil.toInt
 
-    val futures = for(i <- 0L until numberOfPartitions) yield Future {
-      val lower: Long = i * RANGE + 1
+    val futures = for(k <- 0L until numPartitions) yield Future {
+      val lower: Long = k * RANGE + 1
 
-      val upper: Long = candidate min (i + 1) * RANGE
+      val upper: Long = candidate min (k + 1) * RANGE
 
       sumOfFactorsInRange_(lower, upper, candidate)
     }
