@@ -8,15 +8,14 @@ object MyDispatcher1 extends App {
   new MyDispatcher1(workers)
 }
 
-class MyDispatcher1(workers: List[String]) extends Dispatcher(workers) {
-  println(workers)
-  println(workers)
+class MyDispatcher1(sockets: List[String]) extends Dispatcher(sockets) {
+  println(sockets)
   def act: Unit = {
 //    Thread.sleep(250)
-    println("worker len = "+workers.length)
-    (0 until workers.length).foreach { k =>
+    println("worker len = "+sockets.length)
+    (0 until sockets.length).foreach { k =>
       println("sending message to worker " + k)
-      workers(k) ! "to worker(" + k + ") hello from dispatcher"
+        workers(k) ! "to worker(" + k + ") hello from dispatcher"
     }
 
     while (true)
