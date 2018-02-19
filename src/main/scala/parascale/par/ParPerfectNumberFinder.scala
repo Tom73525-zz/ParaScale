@@ -38,12 +38,12 @@ object ParPerfectNumberFinder extends App {
   def isPerfect(candidate: Long): Boolean = {
     val RANGE = 1000000L
 
-    val numberOfPartitions = (candidate.toDouble / RANGE).ceil.toInt
+    val numPartitions = (candidate.toDouble / RANGE).ceil.toInt
 
-    val ranges = for (i <- 0L until numberOfPartitions) yield {
-      val lower: Long = i * RANGE + 1
+    val ranges = for (k <- 0L until numPartitions) yield {
+      val lower: Long = k * RANGE + 1
 
-      val upper: Long = candidate min (i + 1) * RANGE
+      val upper: Long = candidate min (k + 1) * RANGE
 
       (lower, upper)
     }

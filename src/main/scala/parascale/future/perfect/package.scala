@@ -70,12 +70,12 @@ package object perfect {
     * @return sum of factors
     */
   def _sumOfFactors(number: Long) = {
-    var i = 1L
+    var index = 1L
     var sum = 0L
-    while(i <= number.toLong) {
-      if(number % i == 0)
-        sum += i
-      i += 1
+    while(index <= number.toLong) {
+      if(number % index == 0)
+        sum += index
+      index += 1
     }
     sum
   }
