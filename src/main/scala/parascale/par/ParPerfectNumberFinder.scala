@@ -40,7 +40,10 @@ object ParPerfectNumberFinder extends App {
 
     val numPartitions = (candidate.toDouble / RANGE).ceil.toInt
 
-    val ranges = for (k <- 0L until numPartitions) yield {
+    // Start with a parallel collection which propogates through all collections
+    val partitions = (0L until numPartitions).par
+
+    val ranges = for (k <- partitions) yield {
       val lower: Long = k * RANGE + 1
 
       val upper: Long = candidate min (k + 1) * RANGE
@@ -48,7 +51,7 @@ object ParPerfectNumberFinder extends App {
       (lower, upper)
     }
 
-    val sums = ranges.par.map { lowerUpper =>
+    val sums = ranges.map { lowerUpper =>
       val (lower, upper) = lowerUpper
       _sumOfFactorsInRange(lower, upper, candidate)
     }
