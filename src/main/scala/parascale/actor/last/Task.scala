@@ -48,7 +48,6 @@ case class Task(src: String, payload: Any, actorId: Long, kind: Int = Task.TASK)
     import Task._
 
     // Wrap that if necessary in a task for a reply
-    println("Task.reply invoked id = "+actorId)
     val task = that match {
       case task: Task =>
         task

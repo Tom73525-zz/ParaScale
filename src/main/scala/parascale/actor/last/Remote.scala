@@ -51,10 +51,10 @@ class Remote(port: Int, callforward: Actor) extends Runnable {
     val socket = new ServerSocket(port)
 
     while (true) {
-      println("Remote: waiting to accept connection on port " + port)
+      LOG.info("waiting to accept connection on port " + port)
       val clientSocket = socket.accept()
 
-      println("Remote: got connection from " + clientSocket.getInetAddress.getHostAddress)
+      LOG.info("got connection from " + clientSocket.getInetAddress.getHostAddress)
 
       new Thread(new Ice(clientSocket, callforward)).start
     }
