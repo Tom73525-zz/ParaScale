@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Task, Helper, Result}
+import parascale.parabond.util.{Work, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
@@ -71,7 +71,7 @@ class Par03 {
     val details = getPropertyOrElse("details",parseBoolean,false)
     
     // Build the portfolio list    
-    val inputs = for(i <- 0 until n) yield Task(ran.nextInt(100000)+1,null, null)
+    val inputs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null, null)
     
     // Build the portfolio list
     val t0 = System.nanoTime
@@ -118,7 +118,7 @@ class Par03 {
     println(me+" DONE! %d %7.4f".format(n,dtN))
   }
 
-  def price(portf: Task): Task = {
+  def price(portf: Work): Work = {
 
     // Value each bond in the portfolio
     val t0 = System.nanoTime
@@ -133,7 +133,7 @@ class Par03 {
     // Get the bonds in the portfolio
     val bids = MongoHelper.asList(portfsCursor,"instruments")
 
-    val bondIds = for(i <- 0 until bids.size) yield Task(bids(i),null,null)
+    val bondIds = for(i <- 0 until bids.size) yield Work(bids(i),null,null)
 
 
     // Value each bond in parallel
@@ -160,6 +160,6 @@ class Par03 {
 
     val t1 = System.nanoTime
 
-    Task(portf.portfId,null,Result(portf.portfId,outputStage2.maturity,bondIds.size,t0,t1))
+    Work(portf.portfId,null,Result(portf.portfId,outputStage2.maturity,bondIds.size,t0,t1))
   }    
 }

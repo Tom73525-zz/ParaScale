@@ -36,8 +36,8 @@ case class Result(portfId: Int, value: Double, bondCount: Int, t0: Long, t1: Lon
 /**
  * Data mapped between input and output of price method
  */
-object Task {
-  def apply(portfId: Int): Task = Task(portfId, null ,null)
+object Work {
+  def apply(portfId: Int): Work = Work(portfId, null ,null)
 }
 
-case class Task(portfId: Int, bonds: List[SimpleBond], result: Result)
+case class Work(portfId: Int, bonds: List[SimpleBond], result: Result)

@@ -28,7 +28,7 @@ package parabond
 
 import org.apache.log4j.Logger
 import parabond.mr.PORTF_NUM
-import parascale.parabond.util.{Task, Helper}
+import parascale.parabond.util.{Work, Helper}
 import parascale.util.getPropertyOrElse
 
 import scala.collection.GenSeq

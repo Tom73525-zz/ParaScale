@@ -26,7 +26,7 @@
  */
 package parabond.cluster
 
-import parascale.parabond.util.Task
+import parascale.parabond.util.Work
 import scala.collection.GenSeq
 
 /**
@@ -36,4 +36,4 @@ import scala.collection.GenSeq
   * @param t0 Time start
   * @param t1 Time end
   */
-case class Analysis(results: GenSeq[Task], t0: Long, t1: Long) extends Serializable
+case class Analysis(results: GenSeq[Work], t0: Long, t1: Long) extends Serializable

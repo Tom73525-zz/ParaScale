@@ -32,7 +32,7 @@ import parabond.mr.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.casa.MongoHelper.{PortfIdToBondsMap, bondCollection, mongo}
 import parascale.parabond.entry.SimpleBond
-import parascale.parabond.util.{Task, Helper, Result}
+import parascale.parabond.util.{Work, Helper, Result}
 import parascale.parabond.util.Constant.NUM_PORTFOLIOS
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util.getPropertyOrElse
@@ -75,7 +75,7 @@ class MemoryBoundNode extends Node {
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
-    val indices = for(k <- beginIndex to endIndex) yield Task(deck(k) + 1)
+    val indices = for(k <- beginIndex to endIndex) yield Work(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
     val tasks = if(getPropertyOrElse("par",true)) loadPortfsParallel(indices).par else loadPortfsSequential(indices)
@@ -89,7 +89,7 @@ class MemoryBoundNode extends Node {
     Analysis(results, t0, t1)
   }
 
-  def price(task: Task): Task = {
+  def price(task: Work): Work = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -109,17 +109,17 @@ class MemoryBoundNode extends Node {
     val t1 = System.nanoTime
 
     // Return the result for this portfolio
-    Task(task.portfId,null,Result(task.portfId,value,task.bonds.size,t0,t1))
+    Work(task.portfId,null,Result(task.portfId,value,task.bonds.size,t0,t1))
   }
 
   /**
     * Loads portfolios using and their bonds into memory serially.
     */
-  def loadPortfsSequential(tasks: Seq[Task]) : Seq[Task] = {
+  def loadPortfsSequential(tasks: Seq[Work]) : Seq[Work] = {
     // Connect to the portfolio collection
     val portfsCollecton = mongo("Portfolios")
 
-    val portfIdToBondsPairs = tasks.foldLeft(List[Task] ()) { (list, input) =>
+    val portfIdToBondsPairs = tasks.foldLeft(List[Work] ()) { (list, input) =>
       // Select a portfolio
       val portfId = input.portfId
 
@@ -143,7 +143,7 @@ class MemoryBoundNode extends Node {
         bonds ++ List(bond)
       }
 
-      Task(portfId,bonds,null) :: list
+      Work(portfId,bonds,null) :: list
     }
 
     portfIdToBondsPairs
@@ -152,7 +152,7 @@ class MemoryBoundNode extends Node {
   /**
     * Parallel loads portfolios using and their bonds into memory using futures.
     */
-  def loadPortfsParallel(tasks: GenSeq[Task]) : List[Task] = {
+  def loadPortfsParallel(tasks: GenSeq[Work]) : List[Work] = {
     import scala.concurrent.{Await, Future}
     import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -164,13 +164,13 @@ class MemoryBoundNode extends Node {
       MongoHelper.fetchBonds(portfId)
     }
 
-    val list = futures.foldLeft(List[Task]()) { (list, future) =>
+    val list = futures.foldLeft(List[Work]()) { (list, future) =>
       import scala.concurrent.duration._
       import parascale.parabond.util.Constant._
       val result = Await.result(future, MAX_WAIT_TIME seconds)
 
       // Use null because we don't have result yet -- completed when we analyze the portfolio
-      Task(result.portfId, result.bonds, null) :: list
+      Work(result.portfId, result.bonds, null) :: list
     }
 
     list

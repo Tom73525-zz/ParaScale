@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Task, Helper, Result}
+import parascale.parabond.util.{Work, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
@@ -72,8 +72,8 @@ class Par07 {
         
     val numCores = Runtime.getRuntime().availableProcessors()
     
-    val coarseInputs = (1 to numCores).foldLeft(List[List[Task]]()) { (xs, x) =>
-          val inputs = for(i <- 0 until (n / numCores)) yield Task(ran.nextInt(100000)+1,null, null)
+    val coarseInputs = (1 to numCores).foldLeft(List[List[Work]]()) { (xs, x) =>
+          val inputs = for(i <- 0 until (n / numCores)) yield Work(ran.nextInt(100000)+1,null, null)
                    
           inputs.toList :: xs 
     }
@@ -120,8 +120,8 @@ class Par07 {
     * @param portfs
     * @return Valuations
     */
-  def price(portfs: List[Task]) : List[Task] = {
-    val outputs = portfs.foldLeft(List[Task]()) { (results, portf) =>
+  def price(portfs: List[Work]) : List[Work] = {
+    val outputs = portfs.foldLeft(List[Work]()) { (results, portf) =>
       val t0 = System.nanoTime
     
       val portfId = portf.portfId
@@ -143,14 +143,14 @@ class Par07 {
       
       val t1 = System.nanoTime
     
-      Task(portfId,null,Result(portfId,value,bonds.size,t0,t1)) :: results
+      Work(portfId,null,Result(portfId,value,bonds.size,t0,t1)) :: results
     }
  
     outputs
   }  
   
-  def loadChunk(inputs: List[Task]) : List[Task] = {
-    val outputs = inputs.foldLeft(List[Task]()) { (xs, input) =>
+  def loadChunk(inputs: List[Work]) : List[Work] = {
+    val outputs = inputs.foldLeft(List[Work]()) { (xs, input) =>
       val t0 = System.nanoTime
       
       val portfId = input.portfId
@@ -174,7 +174,7 @@ class Par07 {
         list ++ List(bond)
       }    
       
-      xs ++ List(Task(portfId,bonds,null))
+      xs ++ List(Work(portfId,bonds,null))
     }
     
     outputs
@@ -184,11 +184,11 @@ class Par07 {
    * Parallel load the portfolios with embedded bonds.
    * Note: This version uses parallel fold to reduce all the
    */
-  def loadPortfsParFold(n: Int): List[Task] = {
+  def loadPortfsParFold(n: Int): List[Work] = {
     // Initialize the portfolios to retrieve
-    val portfs = for(i <- 0 until n) yield Task(ran.nextInt(100000)+1,null,null)
+    val portfs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null,null)
     
-    val z = List[Task]()
+    val z = List[Work]()
     
     val list = portfs.par.fold(z) { (a,b) =>
       // Make a into list (it already is one but this tells Scala it's one)
@@ -204,19 +204,19 @@ class Par07 {
           opb ++ opa
         
         // If b is a data, append the data to the list
-        case x : Task =>
+        case x : Work =>
           val intermediate = MongoHelper.fetchBonds(x.portfId) 
           
-          List(Task(x.portfId,intermediate.bonds,null)) ++ opa
+          List(Work(x.portfId,intermediate.bonds,null)) ++ opa
       }         
 
     }
     
     list match {
       case l : List[_] =>
-        l.asInstanceOf[List[Task]]
+        l.asInstanceOf[List[Work]]
       case _ =>
-        List[Task]()
+        List[Work]()
     }
   }    
   

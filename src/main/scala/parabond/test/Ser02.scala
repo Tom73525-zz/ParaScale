@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Task, Helper, Result}
+import parascale.parabond.util.{Work, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parabond.mr.PORTF_NUM
 import scala.util.Random
@@ -65,7 +65,7 @@ class Ser02 {
     val details = if(System.getProperty("details") != null) true else false
     
     // Build the portfolio list    
-    val inputs = for(i <- 0 until n) yield Task(ran.nextInt(100000)+1,null,null)
+    val inputs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null,null)
     
     val list = inputs.toList
    
@@ -121,7 +121,7 @@ class Ser02 {
   /**
    * Prices a portfolio using the "basic" algorithm.
    */
-  def price(portf: Task): Task = {
+  def price(portf: Work): Work = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -158,6 +158,6 @@ class Ser02 {
   
     val t1 = System.nanoTime
     
-    Task(portfId,null,Result(portfId,value,bondIds.size,t0,t1))
+    Work(portfId,null,Result(portfId,value,bondIds.size,t0,t1))
   }
 }

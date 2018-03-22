@@ -29,7 +29,7 @@ package parabond.cluster
 import org.apache.log4j.Logger
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.entry.SimpleBond
-import parascale.parabond.util.{Task, Helper, Result}
+import parascale.parabond.util.{Work, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 
 object FineGrainedNode extends App {
@@ -49,7 +49,7 @@ class FineGrainedNode extends BasicNode {
     * @param task Portfolio ids
     * @return Valuation
     */
-  override def price(task: Task): Task = {
+  override def price(task: Work): Work = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -63,7 +63,7 @@ class FineGrainedNode extends BasicNode {
     // Get the bonds in the portfolio
     val bids = MongoHelper.asList(portfsCursor,"instruments")
 
-    val bondIds = for(i <- 0 until bids.size) yield Task(bids(i),null,null)
+    val bondIds = for(i <- 0 until bids.size) yield Work(bids(i),null,null)
 
     val output = bondIds.par.map { bondId =>
       // Get the bond from the bond collection
@@ -84,7 +84,7 @@ class FineGrainedNode extends BasicNode {
 
     val t1 = System.nanoTime
 
-    Task(task.portfId, null, Result(task.portfId, output.maturity, bondIds.size, t0, t1))
+    Work(task.portfId, null, Result(task.portfId, output.maturity, bondIds.size, t0, t1))
   }
 
   /**

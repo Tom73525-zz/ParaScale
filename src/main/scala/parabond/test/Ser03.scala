@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.util.{Task, Helper, Result}
+import parascale.parabond.util.{Work, Helper, Result}
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
@@ -129,7 +129,7 @@ class Ser03 {
    * Prices a portfolio assuming all the bonds for a portfolio are already loaded
    * into memory.
    */
-  def priced(input: Task): Task = {
+  def priced(input: Work): Work = {
     
     // Value each bond in the portfolio
     val t0 = System.nanoTime
@@ -150,21 +150,21 @@ class Ser03 {
     val t1 = System.nanoTime
     
     // Return the result for this portfolio
-    Task(input.portfId,null,Result(input.portfId,value,input.bonds.size,t0,t1))
+    Work(input.portfId,null,Result(input.portfId,value,input.bonds.size,t0,t1))
   }  
   
   /**
    * Parallel load the portfolios with embedded bonds.
    * @param n Number of portfolios to load
    */
-  def loadPortfsFoldLeft(n: Int): List[Task] = {
+  def loadPortfsFoldLeft(n: Int): List[Work] = {
     val lotteries = for(i <- 0 until n) yield ran.nextInt(100000)+1 
     
-    val list = lotteries.foldLeft (List[Task]())
+    val list = lotteries.foldLeft (List[Work]())
     { (portfIdBonds,portfId) =>
       val intermediate = MongoHelper.fetchBonds(portfId)
       
-      Task(portfId,intermediate.bonds,null) :: portfIdBonds
+      Work(portfId,intermediate.bonds,null) :: portfIdBonds
     }
     
     list
