@@ -32,6 +32,7 @@ import parascale.parabond.util.{Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parabond.mr._
 import parascale.util._
+import parascale.parabond.util.Constant._
 
 /** Test driver */
 object Mr05 {
@@ -123,7 +124,7 @@ class Mr05 {
         val bond = MongoHelper.asBond(bondCursor)
 
         // Price the bond
-        val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+        val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
         val price = valuator.price
 

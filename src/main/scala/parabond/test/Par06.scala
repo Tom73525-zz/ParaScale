@@ -27,13 +27,13 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Helper, Result, Work}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
 import parascale.util._
-import parabond.mr.PORTF_NUM
+import parascale.parabond.util.Constant.{DIAGS_DIR, PORTF_NUM}
 
 /** Test driver */
 object Par06 {
@@ -56,7 +56,10 @@ class Par06 {
     val n = getPropertyOrElse("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
-    val outFile = me + "-dat.txt"
+
+    val dir = getPropertyOrElse("dir",DIAGS_DIR)
+
+    val outFile = dir + me + "-dat.txt"
     
     val fos = new java.io.FileOutputStream(outFile,true)
     val os = new java.io.PrintStream(fos)
@@ -130,7 +133,7 @@ class Par06 {
     val output = portf.bonds.par.map { bond =>
       val t0 = System.nanoTime
 
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
 

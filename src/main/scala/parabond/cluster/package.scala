@@ -27,7 +27,7 @@
 package parabond
 
 import org.apache.log4j.Logger
-import parabond.mr.PORTF_NUM
+import parascale.parabond.util.Constant.{PORTF_NUM}
 import parascale.parabond.util.{Work, Helper}
 import parascale.util.getPropertyOrElse
 

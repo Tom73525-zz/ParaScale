@@ -26,10 +26,8 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
-import parascale.parabond.mr.MapReduce
-import parascale.parabond.util.{Helper, Result}
-import parascale.parabond.value.SimpleBondValuator
+import parascale.parabond.util.Result
+import parascale.parabond.util.Constant._
 import parabond.mr._
 import parascale.util.{getPropertyOrElse, parseBoolean}
 

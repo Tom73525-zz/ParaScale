@@ -34,12 +34,9 @@ import org.bson.Document
 import scala.util.Random
 import parascale.parabond.util.{Constant, Work}
 import parascale.parabond.entry.SimpleBond
-
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-import parascale.util.getPropertyOrElse
-
-import scala.collection.GenSeq
+import parascale.util._
 
 /**
  * This object implements monngo-specific helper functions.

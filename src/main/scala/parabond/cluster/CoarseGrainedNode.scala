@@ -27,8 +27,7 @@
 package parabond.cluster
 
 import org.apache.log4j.Logger
-import parabond.mr.PORTF_NUM
-import parascale.parabond.util.Constant.NUM_PORTFOLIOS
+import parascale.parabond.util.Constant.{NUM_PORTFOLIOS, PORTF_NUM}
 import parascale.parabond.util.Work
 import parascale.util.getPropertyOrElse
 import scala.util.Random
@@ -52,7 +51,7 @@ class CoarseGrainedNode extends Node {
     * Prices each portfolio
     * @return
     */
-  def naive = new BasicNode
+  def basic = new BasicNode
 
   /**
     * Runs the portfolio analyses.
@@ -109,20 +108,14 @@ class CoarseGrainedNode extends Node {
   }
 
   /**
-    * Price a collection of portfolios.
-    * @param tasks Portfolios
-    * @return Collection of priced portfolios
-    */
-
-  /**
     * Prices a collection of tasks.
     * Assumes tasks is a serial collection.
     * Check above to find blocks is IndexSeq[IndexSeq[Task]]. So .par on it will be
     * ParSeq[IndexSeq[Task]]. So tasks should be IndexSeq[Task].
-    * @param tasks Tasks
+    * @param work Tasks
     * @return
     */
-  def price(tasks: Seq[Work]) : Seq[Work] = {
-    tasks.map(naive.price)
+  def price(work: Seq[Work]) : Seq[Work] = {
+    work.map(basic.price)
   }
 }

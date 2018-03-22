@@ -27,11 +27,11 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Helper, Result, Work}
 import parascale.parabond.value.SimpleBondValuator
+
 import scala.util.Random
-import parascale.parabond.entry.SimpleBond
-import parabond.mr.PORTF_NUM
+import parascale.parabond.util.Constant.{DIAGS_DIR, PORTF_NUM}
 import parascale.util._
 
 /** Test driver */
@@ -57,8 +57,11 @@ class Par04 {
     // Set the number of portfolios to analyze
     val n = getPropertyOrElse("n",PORTF_NUM)
 
-    var me =  this.getClass().getSimpleName()
-    var outFile = me + "-dat.txt"
+    val me =  this.getClass().getSimpleName()
+
+    val dir = getPropertyOrElse("dir",DIAGS_DIR)
+
+    val outFile = dir + me + "-dat.txt"
     
     var fos = new java.io.FileOutputStream(outFile,true)
     var os = new java.io.PrintStream(fos)
@@ -141,7 +144,7 @@ class Par04 {
         val bond = MongoHelper.asBond(bondCursor)
       
         // Price the bond
-        val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+        val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
         val price = valuator.price
       

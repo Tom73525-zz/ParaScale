@@ -49,4 +49,10 @@ object Constant {
     * Maximum wait time in seconds.
     */
   val MAX_WAIT_TIME = 100000
+
+  /** Directory to write diagnostic output */
+  val DIAGS_DIR = "c:/tmp/"
+
+  /** Default number of bond portfolios to analyze */
+  val PORTF_NUM = 100
 }

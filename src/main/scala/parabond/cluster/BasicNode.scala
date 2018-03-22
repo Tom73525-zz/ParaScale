@@ -27,10 +27,9 @@
 package parabond.cluster
 
 import org.apache.log4j.Logger
-import parabond.mr.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Work, Helper, Result}
-import parascale.parabond.util.Constant.NUM_PORTFOLIOS
+import parascale.parabond.util.Constant.{NUM_PORTFOLIOS, PORTF_NUM}
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util.getPropertyOrElse
 import scala.util.Random
@@ -91,12 +90,12 @@ class BasicNode extends Node {
     * 2) fetch bonds in that portfolio.<p>
     * After the second fetch the bond is then valued and added to the portfoio value
     */
-  def price(task: Work): Work = {
+  def price(work: Work): Work = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // Retrieve the portfolio
-    val portfId = task.portfId
+    val portfId = work.portfId
 
     val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -115,7 +114,7 @@ class BasicNode extends Node {
       val bond = MongoHelper.asBond(bondCursor)
 
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
 
@@ -128,6 +127,6 @@ class BasicNode extends Node {
 
     val t1 = System.nanoTime
 
-    Work(portfId,task.bonds,Result(portfId,value,bondIds.size,t0,t1))
+    Work(portfId,work.bonds,Result(portfId,value,bondIds.size,t0,t1))
   }
 }

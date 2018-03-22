@@ -9,8 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import parascale.parabond.value.SimpleBondValuator
 
 package object mr {
-  /** Default number of bond portfolios to analyze */
-  val PORTF_NUM = 100
+
 
   /** Gets a connection to the parabond database */
   val mongo = MongoConnection(MongoHelper.getHost)("parabond")
@@ -40,7 +39,7 @@ package object mr {
 
       val bond = MongoHelper.asBond(bondsCursor)
 
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
 
@@ -78,7 +77,7 @@ package object mr {
 
       val bond = MongoHelper.asBond(bondCursor)
 
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val value = valuator.price
 
@@ -99,7 +98,7 @@ package object mr {
     val t0 = System.nanoTime
 
     val price = bonds.foldLeft(0.0) { (sum, bond) =>
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
 

@@ -27,9 +27,11 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Helper, Result, Work}
 import parascale.parabond.value.SimpleBondValuator
-import parabond.mr.PORTF_NUM
+import parascale.parabond.util.Constant.PORTF_NUM
+import parascale.util.getPropertyOrElse
+
 import scala.util.Random
 
 /** Test driver */
@@ -61,8 +63,8 @@ class Ser02 {
     val os = new java.io.PrintStream(fos)
     
     os.print(me+" "+ "N: "+n+" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
+
+    val details = getPropertyOrElse("details", false)
     
     // Build the portfolio list    
     val inputs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null,null)
@@ -145,7 +147,7 @@ class Ser02 {
       val bond = MongoHelper.asBond(bondCursor)
       
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
       

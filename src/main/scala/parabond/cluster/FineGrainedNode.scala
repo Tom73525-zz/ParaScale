@@ -46,15 +46,15 @@ object FineGrainedNode extends App {
 class FineGrainedNode extends BasicNode {
   /**
     * Price a portfolio
-    * @param task Portfolio ids
+    * @param work Portfolio ids
     * @return Valuation
     */
-  override def price(task: Work): Work = {
+  override def price(work: Work): Work = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // Retrieve the portfolio
-    val portfId = task.portfId
+    val portfId = work.portfId
 
     val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -73,18 +73,18 @@ class FineGrainedNode extends BasicNode {
 
       val bond = MongoHelper.asBond(bondCursor)
 
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
 
       new SimpleBond(bond.id,bond.coupon,bond.freq,bond.tenor,price)
     }.reduce(sum)
 
-    MongoHelper.updatePrice(task.portfId,output.maturity)
+    MongoHelper.updatePrice(work.portfId,output.maturity)
 
     val t1 = System.nanoTime
 
-    Work(task.portfId, null, Result(task.portfId, output.maturity, bondIds.size, t0, t1))
+    Work(work.portfId, null, Result(work.portfId, output.maturity, bondIds.size, t0, t1))
   }
 
   /**

@@ -27,10 +27,12 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
+import parascale.parabond.util.Constant.DIAGS_DIR
 import parascale.parabond.util.Helper
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
+import parascale.util.getPropertyOrElse
 
 import scala.util.Random
 
@@ -66,16 +68,19 @@ class Ser01 {
     val arg = System.getProperty("n")
     
     val n = if(arg == null) PORTF_NUM else arg.toInt
-    
+
     val me =  this.getClass().getSimpleName()
-    val outFile = me + "-dat.txt"
+
+    val dir = getPropertyOrElse("dir",DIAGS_DIR)
+
+    val outFile = dir + me + "-dat.txt"
     
     val fos = new java.io.FileOutputStream(outFile,true)
     val os = new java.io.PrintStream(fos)
         
     os.print(me+" "+ "N: "+n+" ")  
     
-    val details = if(System.getProperty("details") != null) true else false
+    val details = getPropertyOrElse("details", false)
     
     val t2 = System.nanoTime
     val input = MongoHelper.loadPortfs(n)
@@ -93,7 +98,7 @@ class Ser01 {
       val value = bonds.foldLeft(0.0) { (sum, bond) =>
         
         // Price the bond
-        val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+        val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
         val price = valuator.price
 

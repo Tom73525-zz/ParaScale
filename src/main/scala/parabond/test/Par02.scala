@@ -28,12 +28,13 @@ package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
 import parascale.parabond.casa.MongoHelper.PortfIdToBondsMap
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Helper, Result, Work}
 import parascale.parabond.value.SimpleBondValuator
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import parascale.parabond.entry.SimpleBond
-import parabond.mr.PORTF_NUM
+import parascale.util.getPropertyOrElse
+import parascale.parabond.util.Constant.PORTF_NUM
 
 /** Test driver */
 object Par02 {
@@ -57,9 +58,7 @@ class Par02 {
 
   def test {
     // Set the number of portfolios to analyze
-    val arg = System.getProperty("n")
-    
-    val n = if(arg == null) PORTF_NUM else arg.toInt
+    val n = getPropertyOrElse("n",PORTF_NUM)
     
     print("\n"+this.getClass()+" "+ "N: "+n+" ")
     
@@ -141,7 +140,7 @@ class Par02 {
     * @return Bond price
     */
   def finePrice(bond: SimpleBond): SimpleBond = {
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
       

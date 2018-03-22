@@ -26,7 +26,7 @@
  */
 package parascale.parabond.test
 
-import parascale.parabond.casa.{MongoConnection, MongoDbObject, MongoHelper}
+import parascale.parabond.util.Constant._
 import parascale.parabond.util.Result
 import parabond.mr._
 import parascale.util.{getPropertyOrElse, parseBoolean}

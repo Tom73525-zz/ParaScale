@@ -27,10 +27,11 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Helper, Result, Work}
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
+import parascale.util.getPropertyOrElse
 
 import scala.util.Random
 
@@ -68,8 +69,8 @@ class Ser03 {
     val os = new java.io.PrintStream(fos)
     
     os.print(me+" "+ "N: "+n+" ")
-    
-    val details = if(System.getProperty("details") != null) true else false
+
+    val details = getPropertyOrElse("details", false)
     
     // Load all the bonds into into memory
     // Note: the input is a list of Data instances, each element of which contains a list
@@ -136,7 +137,7 @@ class Ser03 {
     
     val value = input.bonds.foldLeft(0.0) { (sum, bond) =>      
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
       

@@ -29,7 +29,7 @@ package parascale.parabond.test
 import parascale.parabond.casa.MongoHelper
 import parascale.parabond.mr.MapReduce
 import parascale.parabond.util.Result
-import parabond.mr.{PORTF_NUM, _}
+import parabond.mr._
 import parascale.util.{getPropertyOrElse, parseBoolean}
 
 /** Test driver */

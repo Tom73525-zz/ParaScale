@@ -35,7 +35,7 @@ object Helper {
   /**
    * Returns true if the actual and expected are within tolerance
    */
-  def valid(actual : Double, expected : Double) : Boolean = 
+  def valid(actual: Double, expected: Double) : Boolean =
     Math.abs(actual - expected)/expected < TOLERANCE 
     
   /**
@@ -45,7 +45,7 @@ object Helper {
    * been cross-validated with Nelson-Siegel for some on-the-run
    * treasury curve.
    */
-  val curveCoeffs =
+  val yieldCurve =
     List(
       0.022250408186472507
       - 0.0034445001723609914,

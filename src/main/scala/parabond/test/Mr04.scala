@@ -29,6 +29,7 @@ package parascale.parabond.test
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.Result
 import parabond.mr._
+import parascale.parabond.util.Constant._
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator

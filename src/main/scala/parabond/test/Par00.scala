@@ -31,7 +31,7 @@ import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.util.{Work, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util._
-import parabond.mr.PORTF_NUM
+import parascale.parabond.util.Constant.{PORTF_NUM, DIAGS_DIR}
 
 /** Test driver */
 object Par00 {
@@ -58,7 +58,10 @@ class Par00 {
     val n = getPropertyOrElse("n",PORTF_NUM)
 
     val me =  this.getClass().getSimpleName()
-    val outFile = me + "-dat.txt"
+
+    val dir = getPropertyOrElse("dir",DIAGS_DIR)
+
+    val outFile = dir + me + "-dat.txt"
     
     val fos = new java.io.FileOutputStream(outFile,true)
     val os = new java.io.PrintStream(fos)
@@ -144,7 +147,7 @@ class Par00 {
       val bond = MongoHelper.asBond(bondCursor)
       
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
       

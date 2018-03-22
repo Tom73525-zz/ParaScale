@@ -27,8 +27,7 @@
 package parabond.cluster
 
 import org.apache.log4j.Logger
-import parabond.cluster.MemoryBoundNode.LOG
-import parabond.mr.PORTF_NUM
+import parascale.parabond.util.Constant.PORTF_NUM
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.casa.MongoHelper.{PortfIdToBondsMap, bondCollection, mongo}
 import parascale.parabond.entry.SimpleBond
@@ -89,14 +88,14 @@ class MemoryBoundNode extends Node {
     Analysis(results, t0, t1)
   }
 
-  def price(task: Work): Work = {
+  def price(work: Work): Work = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // We already have to bonds in memory.
-    val value = task.bonds.foldLeft(0.0) { (sum, bond) =>
+    val value = work.bonds.foldLeft(0.0) { (sum, bond) =>
       // Price the bond
-      val valuator = new SimpleBondValuator(bond, Helper.curveCoeffs)
+      val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
 
@@ -104,12 +103,12 @@ class MemoryBoundNode extends Node {
       sum + price
     }
 
-    MongoHelper.updatePrice(task.portfId,value)
+    MongoHelper.updatePrice(work.portfId,value)
 
     val t1 = System.nanoTime
 
     // Return the result for this portfolio
-    Work(task.portfId,null,Result(task.portfId,value,task.bonds.size,t0,t1))
+    Work(work.portfId,null,Result(work.portfId,value,work.bonds.size,t0,t1))
   }
 
   /**
