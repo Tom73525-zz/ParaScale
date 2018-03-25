@@ -27,7 +27,7 @@
 package parascale.parabond.db
 
 import scala.io.Source
-import parascale.parabond.casa.{MongoDbObject, MongoHelper}
+import parascale.parabond.casa.{MongoDbObject, MongoHelper, MongoConnection}
 import parascale.parabond.util.Constant
 
 /**
@@ -37,7 +37,7 @@ import parascale.parabond.util.Constant
 object DbLoader {
   /** Create DB Connection which is the IP address of DB server and database name */
   //val mongodb = MongoConnection("127.0.0.1")("parabond")
-  val mongodb = parascale.parabond.casa.MongoConnection(MongoHelper.host)("parabond")
+  val mongodb = MongoConnection(MongoHelper.host)("parabond")
 
   /** Load bonds and portfolios */
   def main(args: Array[String]): Unit = {
