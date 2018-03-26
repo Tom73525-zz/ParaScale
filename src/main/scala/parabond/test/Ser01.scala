@@ -83,17 +83,17 @@ class Ser01 {
     val details = getPropertyOrElse("details", false)
     
     val t2 = System.nanoTime
-    val input = MongoHelper.loadPortfs(n)
+    val portfolios = MongoHelper.loadPortfs(n)
     val t3 = System.nanoTime 
     
     val t0 = System.nanoTime
     
-    val results = input.foldLeft(List[Result]()) { (sum, p) =>  
+    val results = portfolios.foldLeft(List[Result]()) { (sum, portfolio) =>
       // Value each bond in the portfolio
       val t0 = System.nanoTime
 
       // Retrieve the portfolio 
-      val (portfId, bonds) = p
+      val (portfId, bonds) = portfolio
 
       val value = bonds.foldLeft(0.0) { (sum, bond) =>
         

@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.util.{Helper, Result, Work}
+import parascale.parabond.util.{Helper, Result, Job}
 
 import scala.util.Random
 import parascale.parabond.value.SimpleBondValuator
@@ -76,18 +76,18 @@ class Ser03 {
     // Note: the input is a list of Data instances, each element of which contains a list
     // of bonds
     val t2 = System.nanoTime
-    val inputs = loadPortfsFoldLeft(n)
-    val t3 = System.nanoTime   
-    
+    val jobs = loadJobs(n)
+    val t3 = System.nanoTime
+
     // Process the data
-    val now = System.nanoTime  
-    val outputs = inputs.map(priced)     
+    val now = System.nanoTime
+    val outputs = jobs.map(priced)
     val t1 = System.nanoTime
-    
+
     // Generate the output report
     if(details) {
     	println("%6s %10.10s %-5s %-2s".format("PortId","Price","Bonds","dt"))
-    	
+
       outputs.foreach { output =>
         val id = output.portfId
 
@@ -100,72 +100,71 @@ class Ser03 {
         println("%6d %10.2f %5d %6.4f %12d %12d".format(id, price, bondCount, dt, output.result.t1 - now, output.result.t0 - now))
       }
     }
-    
-    val dt1 = outputs.foldLeft(0.0) { (sum,result) =>      
+
+    val dt1 = outputs.foldLeft(0.0) { (sum,result) =>
       sum + (result.result.t1 - result.result.t0)
-      
+
     } / 1000000000.0
-    
+
     val dtN = (t1 - now) / 1000000000.0
-    
+
     val speedup = dt1 / dtN
-    
+
     val numCores = Runtime.getRuntime().availableProcessors()
-    
+
     val e = speedup / numCores
 
     os.print("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
-        format(dt1,dtN,numCores,speedup,e))     
-    
-    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0))   
-    
+        format(dt1,dtN,numCores,speedup,e))
+
+    os.println("load t: %8.4f ".format((t3-t2)/1000000000.0))
+
     os.flush
-    
+
     os.close
-    
-    println(me+" DONE! %d %7.4f".format(n,dtN))        
+
+    println(me+" DONE! %d %7.4f".format(n,dtN))
   }
-  
+
   /**
    * Prices a portfolio assuming all the bonds for a portfolio are already loaded
    * into memory.
    */
-  def priced(input: Work): Work = {
-    
+  def priced(input: Job): Job = {
+
     // Value each bond in the portfolio
     val t0 = System.nanoTime
-    
-    val value = input.bonds.foldLeft(0.0) { (sum, bond) =>      
+
+    val value = input.bonds.foldLeft(0.0) { (sum, bond) =>
       // Price the bond
       val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
 
       val price = valuator.price
-      
+
       // The price into the aggregate sum
       sum + price
-    }    
-    
+    }
+
     // Update the portfolio price
     MongoHelper.updatePrice(input.portfId,value)
-    
+
     val t1 = System.nanoTime
-    
+
     // Return the result for this portfolio
-    Work(input.portfId,null,Result(input.portfId,value,input.bonds.size,t0,t1))
-  }  
-  
+    Job(input.portfId,null,Result(input.portfId,value,input.bonds.size,t0,t1))
+  }
+
   /**
-   * Parallel load the portfolios with embedded bonds.
+   * Parallel load the jobs with embedded bonds.
    * @param n Number of portfolios to load
    */
-  def loadPortfsFoldLeft(n: Int): List[Work] = {
-    val lotteries = for(i <- 0 until n) yield ran.nextInt(100000)+1 
+  def loadJobs(n: Int): List[Job] = {
+    val portfIds = for(i <- 0 until n) yield ran.nextInt(100000)+1
     
-    val list = lotteries.foldLeft (List[Work]())
-    { (portfIdBonds,portfId) =>
+    val list = portfIds.foldLeft (List[Job]()) { (jobs,portfId) =>
       val intermediate = MongoHelper.fetchBonds(portfId)
       
-      Work(portfId,intermediate.bonds,null) :: portfIdBonds
+      Job(portfId,intermediate.bonds,null) :: jobs
     }
     
     list

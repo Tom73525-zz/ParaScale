@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.MongoHelper
-import parascale.parabond.util.{Helper, Result, Work}
+import parascale.parabond.util.{Helper, Result, Job}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
@@ -72,12 +72,12 @@ class Par06 {
     // Note: the input is a list of Data instances, each element of which contains a list
     // of bonds
     val t2 = System.nanoTime
-    val inputs = loadPortfsParFold(n)
+    val jobs = loadPortfsParFold(n)
     val t3 = System.nanoTime   
     
     // Build the portfolio list
     val t0 = System.nanoTime
-    val results = inputs.par.map(price)
+    val results = jobs.par.map(price)
     val t1 = System.nanoTime
 
     // Generate the detailed output report
@@ -119,18 +119,18 @@ class Par06 {
 
     os.close
 
-    println(me+" DONE! %d %7.4f".format(n,dtN))
+    println(me+" DONE! %d %7.4f %7.4f".format(n, dt1, dtN))
   }
 
-  def price(portf: Work): Work = {
+  def price(job: Job): Job = {
 
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
 //    val bondIds = asList(portfsCursor,"instruments")
-    val bonds = portf.bonds
+    val bonds = job.bonds
 
-    val output = portf.bonds.par.map { bond =>
+    val output = job.bonds.par.map { bond =>
       val t0 = System.nanoTime
 
       val valuator = new SimpleBondValuator(bond, Helper.yieldCurve)
@@ -142,11 +142,11 @@ class Par06 {
       new SimpleBond(bond.id,bond.coupon,bond.freq,bond.tenor,price)
     }.par.reduce(sum)
 
-    MongoHelper.updatePrice(portf.portfId,output.maturity)
+    MongoHelper.updatePrice(job.portfId,output.maturity)
 
     val t1 = System.nanoTime
 
-    Work(portf.portfId,null,Result(portf.portfId,output.maturity,portf.bonds.size,t0,t1))
+    Job(job.portfId,null,Result(job.portfId,output.maturity,job.bonds.size,t0,t1))
   }  
 
   def sum(a: SimpleBond, b:SimpleBond) : SimpleBond = {
@@ -157,11 +157,11 @@ class Par06 {
    * Parallel load the portfolios with embedded bonds.
    * Note: This version uses parallel fold to reduce all the
    */
-  def loadPortfsParFold(n: Int): List[Work] = {
+  def loadPortfsParFold(n: Int): List[Job] = {
     // Initialize the portfolios to retrieve
-    val portfs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null,null)
+    val portfs = for(i <- 0 until n) yield Job(ran.nextInt(100000)+1,null,null)
     
-    val z = List[Work]()
+    val z = List[Job]()
     
     val list = portfs.par.fold(z) { (a,b) =>
       // Make a into list (it already is one but this tells Scala it's one)
@@ -177,19 +177,19 @@ class Par06 {
           opb ++ opa
         
         // If b is a data, append the data to the list
-        case x : Work =>
+        case x : Job =>
           val intermediate = MongoHelper.fetchBonds(x.portfId) 
           
-          List(Work(x.portfId,intermediate.bonds,null)) ++ opa
+          List(Job(x.portfId,intermediate.bonds,null)) ++ opa
       }         
 
     }
     
     list match {
       case l : List[_] =>
-        l.asInstanceOf[List[Work]]
+        l.asInstanceOf[List[Job]]
       case _ =>
-        List[Work]()
+        List[Job]()
     }
   }    
   

@@ -29,9 +29,13 @@ package parabond.cluster
 import org.apache.log4j.Logger
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.entry.SimpleBond
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Job, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 
+/**
+  * Runs a fine grain node which retrieves the portfolios in random order and prices the bonds as
+  * a parallel collection.
+  */
 object FineGrainedNode extends App {
   val LOG = Logger.getLogger(getClass)
 
@@ -49,7 +53,7 @@ class FineGrainedNode extends BasicNode {
     * @param work Portfolio ids
     * @return Valuation
     */
-  override def price(work: Work): Work = {
+  override def price(work: Job): Job = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -63,7 +67,7 @@ class FineGrainedNode extends BasicNode {
     // Get the bonds in the portfolio
     val bids = MongoHelper.asList(portfsCursor,"instruments")
 
-    val bondIds = for(i <- 0 until bids.size) yield Work(bids(i),null,null)
+    val bondIds = for(i <- 0 until bids.size) yield Job(bids(i),null,null)
 
     val output = bondIds.par.map { bondId =>
       // Get the bond from the bond collection
@@ -84,7 +88,7 @@ class FineGrainedNode extends BasicNode {
 
     val t1 = System.nanoTime
 
-    Work(work.portfId, null, Result(work.portfId, output.maturity, bondIds.size, t0, t1))
+    Job(work.portfId, null, Result(work.portfId, output.maturity, bondIds.size, t0, t1))
   }
 
   /**

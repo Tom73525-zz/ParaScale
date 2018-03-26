@@ -66,14 +66,14 @@ class Ser00 {
     
     val details = if(System.getProperty("details") != null) true else false
     
-    val input = (1 to n).foldLeft(List[Int]()) { (list, p) =>
+    val portfIds = (1 to n).foldLeft(List[Int]()) { (list, p) =>
       val r = ran.nextInt(100000)+1
       list ::: List(r)
     }    
     
     val t0 = System.nanoTime
     
-    val results = input.foldLeft(List[Result]()) { (sum, portfId) =>
+    val results = portfIds.foldLeft(List[Result]()) { (sum, portfId) =>
       // Value each bond in the portfolio
       val t0 = System.nanoTime
 

@@ -32,7 +32,7 @@ import com.mongodb.client.FindIterable
 import org.bson.Document
 
 import scala.util.Random
-import parascale.parabond.util.{Constant, Work}
+import parascale.parabond.util.{Constant, Job}
 import parascale.parabond.entry.SimpleBond
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global

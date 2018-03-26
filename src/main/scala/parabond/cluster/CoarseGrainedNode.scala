@@ -28,12 +28,12 @@ package parabond.cluster
 
 import org.apache.log4j.Logger
 import parascale.parabond.util.Constant.{NUM_PORTFOLIOS, PORTF_NUM}
-import parascale.parabond.util.Work
+import parascale.parabond.util.Job
 import parascale.util.getPropertyOrElse
 import scala.util.Random
 
 /**
-  * Prices a block of portfolio per core.
+  * Runs a coarse node which retrieves the portfolios in block random order and prices the blocks sequentially.
   */
 object CoarseGrainedNode extends App {
   val LOG = Logger.getLogger(getClass)
@@ -81,7 +81,7 @@ class CoarseGrainedNode extends Node {
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
-    val indices = for(k <- begin to end) yield Work(deck(k) + 1)
+    val indices = for(k <- begin to end) yield Job(deck(k) + 1)
 
     // Block the indices according to number of cores: each core gets a single clock.
     val numCores = getPropertyOrElse("cores",Runtime.getRuntime.availableProcessors)
@@ -115,7 +115,7 @@ class CoarseGrainedNode extends Node {
     * @param work Tasks
     * @return
     */
-  def price(work: Seq[Work]) : Seq[Work] = {
+  def price(work: Seq[Job]) : Seq[Job] = {
     work.map(basic.price)
   }
 }

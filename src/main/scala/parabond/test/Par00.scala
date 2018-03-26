@@ -28,7 +28,7 @@ package parascale.parabond.test
 
 import scala.util.Random
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Job, Helper, Result}
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util._
 import parascale.parabond.util.Constant.{PORTF_NUM, DIAGS_DIR}
@@ -71,13 +71,13 @@ class Par00 {
     val details = getPropertyOrElse("details",parseBoolean,false)
 
     // Build the portfolio list    
-    val inputs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null,null)
-    
-    val list = inputs.toList
-   
-    // Parallel map the input
+    val portfIds = for(i <- 0 until n) yield Job(ran.nextInt(100000)+1,null,null)
+
+    // Parallel price the portfolios
     val t0 = System.nanoTime
-    val results = inputs.par.map(price)
+
+    val results = portfIds.par.map(price)
+
     val t1 = System.nanoTime
     
     // Generate the detailed output report
@@ -117,18 +117,18 @@ class Par00 {
     
     os.close
     
-    println(me+" DONE! %d %7.4f".format(n,dtN))      
+    println(me+" DONE! %d %7.4f %7.4f".format(n, dt1, dtN))
   }
    
   /**
    * Prices a portfolio using the "basic" algorithm.
    */
-  def price(input: Work): Work = {
+  def price(job: Job): Job = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
-    
-    // Retrieve the portfolio 
-    val portfId = input.portfId
+
+    // Retrieve the portfolio
+    val portfId = job.portfId
     
     val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -160,6 +160,6 @@ class Par00 {
     
     val t1 = System.nanoTime
     
-    Work(portfId,null,Result(portfId,value,bondIds.size,t0,t1))
+    Job(portfId,null,Result(portfId,value,bondIds.size,t0,t1))
   }
 }

@@ -28,7 +28,7 @@ package parabond
 
 import org.apache.log4j.Logger
 import parascale.parabond.util.Constant.{PORTF_NUM}
-import parascale.parabond.util.{Work, Helper}
+import parascale.parabond.util.{Job, Helper}
 import parascale.util.getPropertyOrElse
 
 import scala.collection.GenSeq
@@ -94,10 +94,9 @@ package object cluster {
 
     val e = speedup / numCores
 
-    log.info("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".
-      format(dt1,dtN,numCores,speedup,e))
+    log.info("dt(1): %7.4f  dt(N): %7.4f  cores: %d  R: %5.2f  e: %5.2f ".format(dt1,dtN,numCores,speedup,e))
 
     val n = getPropertyOrElse("n", PORTF_NUM)
-    log.info(" DONE! %d %7.4f".format(n, dtN))
+    log.info("DONE! %d %7.4f %7.4f".format(n, dt1, dtN))
   }
 }

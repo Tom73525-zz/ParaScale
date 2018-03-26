@@ -28,12 +28,16 @@ package parabond.cluster
 
 import org.apache.log4j.Logger
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Work, Helper, Result}
+import parascale.parabond.util.{Job, Helper, Result}
 import parascale.parabond.util.Constant.{NUM_PORTFOLIOS, PORTF_NUM}
 import parascale.parabond.value.SimpleBondValuator
 import parascale.util.getPropertyOrElse
 import scala.util.Random
 
+/**
+  * Runs a basic node which retrieves the portfolios in random order and prices the portfolios
+  * as a parallel collection.
+  */
 object BasicNode extends App {
   val LOG = Logger.getLogger(getClass)
 
@@ -68,14 +72,14 @@ class BasicNode extends Node {
     val begin = getPropertyOrElse("begin", 0)
     val end = begin + n
 
-    // The jobs working on, k+1 since portf ids are 1-based
-    val indices = for(k <- begin to end) yield Work(deck(k) + 1)
+    // The jobs working we're on, k+1 since portf ids are 1-based
+    val _jobs = for(k <- begin to end) yield Job(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
-    val tasks = if(getPropertyOrElse("par", true)) indices.par else indices
+    val jobs = if(getPropertyOrElse("par", true)) _jobs.par else _jobs
 
     // Run the analysis
-    val results = tasks.map(price)
+    val results = jobs.par.map(price)
 
     // Clock out
     val t1 = System.nanoTime
@@ -90,7 +94,7 @@ class BasicNode extends Node {
     * 2) fetch bonds in that portfolio.<p>
     * After the second fetch the bond is then valued and added to the portfoio value
     */
-  def price(work: Work): Work = {
+  def price(work: Job): Job = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
@@ -127,6 +131,6 @@ class BasicNode extends Node {
 
     val t1 = System.nanoTime
 
-    Work(portfId,work.bonds,Result(portfId,value,bondIds.size,t0,t1))
+    Job(portfId,work.bonds,Result(portfId,value,bondIds.size,t0,t1))
   }
 }

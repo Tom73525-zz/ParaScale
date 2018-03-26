@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Helper, Result, Work}
+import parascale.parabond.util.{Helper, Result, Job}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
@@ -75,11 +75,11 @@ class Par03 {
     val details = getPropertyOrElse("details",parseBoolean,false)
     
     // Build the portfolio list    
-    val inputs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null, null)
+    val portfIds = for(i <- 0 until n) yield Job(ran.nextInt(100000)+1,null, null)
     
     // Build the portfolio list
     val t0 = System.nanoTime
-    val results = inputs.par.map(price)
+    val results = portfIds.par.map(price)
     val t1 = System.nanoTime
 
     // Generate the detailed output report
@@ -122,13 +122,13 @@ class Par03 {
     println(me+" DONE! %d %7.4f".format(n,dtN))
   }
 
-  def price(portf: Work): Work = {
+  def price(job: Job): Job = {
 
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // Retrieve the portfolio
-    val portfId = portf.portfId
+    val portfId = job.portfId
 
     val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -137,7 +137,7 @@ class Par03 {
     // Get the bonds in the portfolio
     val bids = MongoHelper.asList(portfsCursor,"instruments")
 
-    val bondIds = for(i <- 0 until bids.size) yield Work(bids(i),null,null)
+    val bondIds = for(i <- 0 until bids.size) yield Job(bids(i),null,null)
 
 
     // Value each bond in parallel
@@ -160,10 +160,10 @@ class Par03 {
       new SimpleBond(0,0,0,0,a.maturity+b.maturity)
     }
 
-    MongoHelper.updatePrice(portf.portfId,outputStage2.maturity)
+    MongoHelper.updatePrice(job.portfId,outputStage2.maturity)
 
     val t1 = System.nanoTime
 
-    Work(portf.portfId,null,Result(portf.portfId,outputStage2.maturity,bondIds.size,t0,t1))
+    Job(job.portfId,null,Result(job.portfId,outputStage2.maturity,bondIds.size,t0,t1))
   }    
 }

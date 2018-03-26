@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Helper, Result, Work}
+import parascale.parabond.util.{Helper, Result, Job}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
@@ -74,12 +74,12 @@ class Par04 {
 
     // Build a list the size of the number of cores of portfolio lists
     // Each core will get n/num_cores blocks of portfolios to price
-    val blocks = (1 to numCores).foldLeft(List[List[Work]]()) { (portfs, x) =>
+    val blocks = (1 to numCores).foldLeft(List[List[Job]]()) { (jobs, _) =>
       // Build a list of portfolios
-      val portf = for(i <- 0 until (n / numCores)) yield Work(ran.nextInt(100000)+1,null, null)
+      val portfIds = for(i <- 0 until (n / numCores)) yield Job(ran.nextInt(100000)+1,null, null)
 
       // portf is a list added as a list element to (not merged with!) the portfs list
-      portf.toList :: portfs
+      portfIds.toList :: jobs
     }
     
     // Build the portfolio list
@@ -116,14 +116,14 @@ class Par04 {
 
   /**
     * Price a collection of portfolios.
-    * @param portfs Portfolios
+    * @param jobs Portfolios
     * @return Collection of priced portfolios
     */
-  def price(portfs: List[Work]) : List[Work] = {
-    val outputs = portfs.foldLeft(List[Work]()) { (results, portf) =>
+  def price(jobs: List[Job]) : List[Job] = {
+    val outputs = jobs.foldLeft(List[Job]()) { (results, job) =>
       val t0 = System.nanoTime
       
-      val portfId = portf.portfId
+      val portfId = job.portfId
       
       val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -156,7 +156,7 @@ class Par04 {
       
       val t1 = System.nanoTime
     
-      Work(portfId,null,Result(portfId,value,bondIds.size,t0,t1)) :: results
+      Job(portfId,null,Result(portfId,value,bondIds.size,t0,t1)) :: results
     }
  
     outputs

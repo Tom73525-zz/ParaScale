@@ -27,7 +27,7 @@
 package parascale.parabond.test
 
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
-import parascale.parabond.util.{Helper, Result, Work}
+import parascale.parabond.util.{Helper, Result, Job}
 import parascale.parabond.value.SimpleBondValuator
 
 import scala.util.Random
@@ -76,14 +76,14 @@ class Par07 {
         
     val numCores = Runtime.getRuntime().availableProcessors()
     
-    val coarseInputs = (1 to numCores).foldLeft(List[List[Work]]()) { (xs, x) =>
-          val inputs = for(i <- 0 until (n / numCores)) yield Work(ran.nextInt(100000)+1,null, null)
+    val coarseJobs = (1 to numCores).foldLeft(List[List[Job]]()) { (coarses, _) =>
+          val jobs = for(i <- 0 until (n / numCores)) yield Job(ran.nextInt(100000)+1,null, null)
                    
-          inputs.toList :: xs 
+          jobs.toList :: coarses
     }
     
     val t2 = System.nanoTime
-    val blocks = coarseInputs.par.map(loadChunk)
+    val blocks = coarseJobs.par.map(loadChunk)
     val t3 = System.nanoTime     
 
     // Build the portfolio list
@@ -115,17 +115,17 @@ class Par07 {
     os.flush
     
     os.close
-    
-    println(me+" DONE! %d %7.4f".format(n,dtN))      
+
+    println(me+" DONE! %d %7.4f %7.4f".format(n, dt1, dtN))
   }
 
   /**
     * Prices a collection of portfolios.
-    * @param portfs
+    * @param jobs
     * @return Valuations
     */
-  def price(portfs: List[Work]) : List[Work] = {
-    val outputs = portfs.foldLeft(List[Work]()) { (results, portf) =>
+  def price(jobs: List[Job]) : List[Job] = {
+    val outputs = jobs.foldLeft(List[Job]()) { (results, portf) =>
       val t0 = System.nanoTime
     
       val portfId = portf.portfId
@@ -147,17 +147,17 @@ class Par07 {
       
       val t1 = System.nanoTime
     
-      Work(portfId,null,Result(portfId,value,bonds.size,t0,t1)) :: results
+      Job(portfId,null,Result(portfId,value,bonds.size,t0,t1)) :: results
     }
  
     outputs
   }  
   
-  def loadChunk(inputs: List[Work]) : List[Work] = {
-    val outputs = inputs.foldLeft(List[Work]()) { (xs, input) =>
+  def loadChunk(jobs: List[Job]) : List[Job] = {
+    val outputs = jobs.foldLeft(List[Job]()) { (xs, job) =>
       val t0 = System.nanoTime
       
-      val portfId = input.portfId
+      val portfId = job.portfId
       
       val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -178,7 +178,7 @@ class Par07 {
         list ++ List(bond)
       }    
       
-      xs ++ List(Work(portfId,bonds,null))
+      xs ++ List(Job(portfId,bonds,null))
     }
     
     outputs
@@ -188,40 +188,37 @@ class Par07 {
    * Parallel load the portfolios with embedded bonds.
    * Note: This version uses parallel fold to reduce all the
    */
-  def loadPortfsParFold(n: Int): List[Work] = {
+  def loadPortfsParFold(n: Int): List[Job] = {
     // Initialize the portfolios to retrieve
-    val portfs = for(i <- 0 until n) yield Work(ran.nextInt(100000)+1,null,null)
-    
-    val z = List[Work]()
-    
-    val list = portfs.par.fold(z) { (a,b) =>
+    val jobs = for(i <- 0 until n) yield Job(ran.nextInt(100000)+1,null,null)
+
+    val list = jobs.par.fold(List[Job]()) { (a,b) =>
       // Make a into list (it already is one but this tells Scala it's one)
       // Seems a = z initially
       val opa = a match {
-        case y : List[_] =>
+        case y: List[_] =>
           y
       }
       
       b match {
         // If b is a list, just append the two lists
-        case opb : List[_] =>
+        case opb: List[_] =>
           opb ++ opa
         
-        // If b is a data, append the data to the list
-        case x : Work =>
-          val intermediate = MongoHelper.fetchBonds(x.portfId) 
+        // If b is a job, append the job to the list
+        case job: Job =>
+          val intermediate = MongoHelper.fetchBonds(job.portfId)
           
-          List(Work(x.portfId,intermediate.bonds,null)) ++ opa
+          List(Job(job.portfId,intermediate.bonds,null)) ++ opa
       }         
 
     }
     
     list match {
-      case l : List[_] =>
-        l.asInstanceOf[List[Work]]
+      case l: List[_] =>
+        l.asInstanceOf[List[Job]]
       case _ =>
-        List[Work]()
+        List[Job]()
     }
-  }    
-  
+  }
 }
