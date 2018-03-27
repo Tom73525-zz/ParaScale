@@ -27,8 +27,11 @@
 package parabond.cluster
 
 /**
-  * Base node class.
+  * Defines a partition for a cluster node to work on.
+  * @param seed Random seed
+  * @param size Size of the portfolio database from which to draw randomly
+  * @param n Number of portfolios to analyze
+  * @param begin Starting index in the randomized deck of portfolios.
+  * @param para If true use parallel collections, else use serial collections
   */
-abstract class Node {
-  def analyze(partition: Partition): Analysis
-}
+case class Partition(seed: Int, size: Int, n: Int, begin: Int, para: Boolean=true) extends Serializable

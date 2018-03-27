@@ -41,7 +41,12 @@ import scala.util.Random
 object BasicNode extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new BasicNode analyze
+  val seed = getPropertyOrElse("seed",0)
+  val size = getPropertyOrElse("size", NUM_PORTFOLIOS)
+  val n = getPropertyOrElse("n", PORTF_NUM)
+  val begin = getPropertyOrElse("begin", 0)
+
+  val analysis = new BasicNode analyze(Partition(seed=seed, size=size, n=n, begin=begin))
 
   report(LOG, analysis)
 }
@@ -50,33 +55,28 @@ object BasicNode extends App {
   * Prices one portfolio per core using the basic or "naive" algorithm.
   */
 class BasicNode extends Node {
-  def analyze: Analysis = {
+  def analyze(partition: Partition): Analysis = {
     // Clock in
     val t0 = System.nanoTime
 
     // Seed must be same for ever host in cluster as this establishes
     // the randomized portfolio sequence
-    val seed = getPropertyOrElse("seed",0)
-    Random.setSeed(seed)
+    Random.setSeed(partition.seed)
 
     // Size of database
-    val size  = getPropertyOrElse("size", NUM_PORTFOLIOS)
-
     // Shuffled deck of portfolios
-    val deck = Random.shuffle(0 to size-1)
+    val deck = Random.shuffle(0 to partition.size-1)
 
     // Number of portfolios to analyze
-    val n = getPropertyOrElse("n", PORTF_NUM)
-
     // Start and end (inclusive) indices in analysis sequence
-    val begin = getPropertyOrElse("begin", 0)
-    val end = begin + n
+    val begin = partition.begin
+    val end = begin + partition.n
 
     // The jobs working we're on, k+1 since portf ids are 1-based
     val _jobs = for(k <- begin to end) yield Job(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
-    val jobs = if(getPropertyOrElse("par", true)) _jobs.par else _jobs
+    val jobs = if(partition.para) _jobs.par else _jobs
 
     // Run the analysis
     val results = jobs.par.map(price)
@@ -94,12 +94,12 @@ class BasicNode extends Node {
     * 2) fetch bonds in that portfolio.<p>
     * After the second fetch the bond is then valued and added to the portfoio value
     */
-  def price(work: Job): Job = {
+  def price(job: Job): Job = {
     // Value each bond in the portfolio
     val t0 = System.nanoTime
 
     // Retrieve the portfolio
-    val portfId = work.portfId
+    val portfId = job.portfId
 
     val portfsQuery = MongoDbObject("id" -> portfId)
 
@@ -131,6 +131,6 @@ class BasicNode extends Node {
 
     val t1 = System.nanoTime
 
-    Job(portfId,work.bonds,Result(portfId,value,bondIds.size,t0,t1))
+    Job(portfId,job.bonds,Result(portfId,value,bondIds.size,t0,t1))
   }
 }

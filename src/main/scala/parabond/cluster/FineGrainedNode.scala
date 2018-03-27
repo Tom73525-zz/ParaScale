@@ -29,8 +29,10 @@ package parabond.cluster
 import org.apache.log4j.Logger
 import parascale.parabond.casa.{MongoDbObject, MongoHelper}
 import parascale.parabond.entry.SimpleBond
-import parascale.parabond.util.{Job, Helper, Result}
+import parascale.parabond.util.Constant.{NUM_PORTFOLIOS, PORTF_NUM}
+import parascale.parabond.util.{Helper, Job, Result}
 import parascale.parabond.value.SimpleBondValuator
+import parascale.util.getPropertyOrElse
 
 /**
   * Runs a fine grain node which retrieves the portfolios in random order and prices the bonds as
@@ -39,7 +41,12 @@ import parascale.parabond.value.SimpleBondValuator
 object FineGrainedNode extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new FineGrainedNode analyze
+  val seed = getPropertyOrElse("seed",0)
+  val size = getPropertyOrElse("size", NUM_PORTFOLIOS)
+  val n = getPropertyOrElse("n", PORTF_NUM)
+  val begin = getPropertyOrElse("begin", 0)
+
+  val analysis = new FineGrainedNode analyze(Partition(seed=seed, size=size, n=n, begin=begin))
 
   report(LOG, analysis)
 }

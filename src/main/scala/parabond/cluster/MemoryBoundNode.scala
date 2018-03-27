@@ -45,7 +45,12 @@ import scala.util.Random
 object MemoryBoundNode extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new MemoryBoundNode analyze
+  val seed = getPropertyOrElse("seed",0)
+  val size = getPropertyOrElse("size", NUM_PORTFOLIOS)
+  val n = getPropertyOrElse("n", PORTF_NUM)
+  val begin = getPropertyOrElse("begin", 0)
+
+  val analysis = new MemoryBoundNode analyze(Partition(seed=seed, size=size, n=n, begin=begin))
 
   report(LOG, analysis)
 }
@@ -54,34 +59,29 @@ object MemoryBoundNode extends App {
   * Prices one portfolio per core by first loading all the bonds of a portfolio into memory.
   */
 class MemoryBoundNode extends Node {
-  def analyze: Analysis = {
+  def analyze(partition: Partition): Analysis = {
     // Clock in
     val t0 = System.nanoTime
 
     // Seed must be same for ever host in cluster as this establishes
     // the randomized portfolio sequence
-    val seed = getPropertyOrElse("seed",0)
-    Random.setSeed(seed)
+    Random.setSeed(partition.seed)
 
     // Number of portfolios to analyze
-    val n = getPropertyOrElse("n",PORTF_NUM)
-
     // Start and end (inclusive) in analysis sequence
-    val beginIndex = getPropertyOrElse("begin", 0)
-    val endIndex = beginIndex + n
+    val beginIndex = partition.begin
+    val endIndex = beginIndex + partition.n
 
     // Size of the database
-    val size = getPropertyOrElse("size", NUM_PORTFOLIOS)
-
     // Shuffled deck of portfolios
-    val deck = Random.shuffle(0 to size-1)
+    val deck = Random.shuffle(0 to partition.size-1)
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
     val _jobs = for(k <- beginIndex to endIndex) yield Job(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
-    val jobs = if(getPropertyOrElse("par",true)) loadPortfsParallel(_jobs).par else loadPortfsSequential(_jobs)
+    val jobs = if(partition.para) loadPortfsParallel(_jobs).par else loadPortfsSequential(_jobs)
 
     // Run the analysis
     val results = jobs.map(price)

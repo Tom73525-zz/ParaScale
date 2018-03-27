@@ -38,7 +38,12 @@ import scala.util.Random
 object CoarseGrainedNode extends App {
   val LOG = Logger.getLogger(getClass)
 
-  val analysis = new CoarseGrainedNode analyze
+  val seed = getPropertyOrElse("seed",0)
+  val size = getPropertyOrElse("size", NUM_PORTFOLIOS)
+  val n = getPropertyOrElse("n", PORTF_NUM)
+  val begin = getPropertyOrElse("begin", 0)
+
+  val analysis = new CoarseGrainedNode analyze(Partition(seed=seed, size=size, n=n, begin=begin))
 
   report(LOG, analysis)
 }
@@ -57,27 +62,22 @@ class CoarseGrainedNode extends Node {
     * Runs the portfolio analyses.
     * @return Analysis
     */
-  def analyze: Analysis = {
+  def analyze(partition: Partition): Analysis = {
     // Clock in
     val t0 = System.nanoTime
 
     // Seed must be same for ever host in cluster as this establishes
     // the randomized portfolio sequence
-    val seed = getPropertyOrElse("seed",0)
-    Random.setSeed(seed)
+    Random.setSeed(partition.seed)
 
     // Size of database
-    val size  = getPropertyOrElse("size", NUM_PORTFOLIOS)
-
     // Shuffled deck of portfolios
-    val deck = Random.shuffle(0 to size-1)
+    val deck = Random.shuffle(0 to partition.size-1)
 
     // Number of portfolios to analyze
-    val n = getPropertyOrElse("n", PORTF_NUM)
-
     // Start and end (inclusive) indices in analysis sequence
-    val begin = getPropertyOrElse("begin", 0)
-    val end = begin + n
+    val begin = partition.begin
+    val end = begin + partition.n
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
@@ -86,7 +86,7 @@ class CoarseGrainedNode extends Node {
     // Block the indices according to number of cores: each core gets a single clock.
     val numCores = getPropertyOrElse("cores",Runtime.getRuntime.availableProcessors)
 
-    val blksize = n / numCores
+    val blksize = partition.n / numCores
 
     val blocks = for(core <- 0 until numCores) yield {
       val start = core * blksize + begin
