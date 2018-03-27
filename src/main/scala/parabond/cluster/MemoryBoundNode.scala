@@ -69,8 +69,8 @@ class MemoryBoundNode extends Node {
 
     // Number of portfolios to analyze
     // Start and end (inclusive) in analysis sequence
-    val beginIndex = partition.begin
-    val endIndex = beginIndex + partition.n
+    val begin = partition.begin
+    val end = begin + partition.n
 
     // Size of the database
     // Shuffled deck of portfolios
@@ -78,7 +78,7 @@ class MemoryBoundNode extends Node {
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
-    val _jobs = for(k <- beginIndex to endIndex) yield Job(deck(k) + 1)
+    val _jobs = for(k <- begin until end) yield Job(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
     val jobs = if(partition.para) loadPortfsParallel(_jobs).par else loadPortfsSequential(_jobs)

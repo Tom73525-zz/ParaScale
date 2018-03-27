@@ -27,12 +27,13 @@
 package parabond.cluster
 
 import parascale.parabond.util.Constant.NUM_PORTFOLIOS
+
 /**
   * Defines a partition for a cluster node to work on.
   * @param seed Random seed
-  * @param size Size of the portfolio database from which to draw randomly
   * @param n Number of portfolios to analyze
   * @param begin Starting index in the randomized deck of portfolios.
+  * @param size Size of the portfolio database from which to draw randomly
   * @param para If true use parallel collections, else use serial collections
   */
 case class Partition(seed: Int, n: Int, begin: Int, para: Boolean=true, size: Int=NUM_PORTFOLIOS) extends Serializable

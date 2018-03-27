@@ -81,7 +81,7 @@ class CoarseGrainedNode extends Node {
 
     // Indices in the deck we're working on
     // Note: k+1 since portf ids are 1-based
-    val indices = for(k <- begin to end) yield Job(deck(k) + 1)
+    val indices = for(k <- begin until end) yield Job(deck(k) + 1)
 
     // Block the indices according to number of cores: each core gets a single clock.
     val numCores = getPropertyOrElse("cores",Runtime.getRuntime.availableProcessors)

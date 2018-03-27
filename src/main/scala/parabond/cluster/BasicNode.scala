@@ -72,7 +72,7 @@ class BasicNode extends Node {
     val end = begin + partition.n
 
     // The jobs working we're on, k+1 since portf ids are 1-based
-    val _jobs = for(k <- begin to end) yield Job(deck(k) + 1)
+    val _jobs = for(k <- begin until end) yield Job(deck(k) + 1)
 
     // Get the proper collection depending on whether we're measuring T1 or TN
     val jobs = if(partition.para) _jobs.par else _jobs
