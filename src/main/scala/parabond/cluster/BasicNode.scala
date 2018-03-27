@@ -42,11 +42,10 @@ object BasicNode extends App {
   val LOG = Logger.getLogger(getClass)
 
   val seed = getPropertyOrElse("seed",0)
-  val size = getPropertyOrElse("size", NUM_PORTFOLIOS)
   val n = getPropertyOrElse("n", PORTF_NUM)
   val begin = getPropertyOrElse("begin", 0)
 
-  val analysis = new BasicNode analyze(Partition(seed=seed, size=size, n=n, begin=begin))
+  val analysis = new BasicNode analyze(Partition(seed=seed, n=n, begin=begin))
 
   report(LOG, analysis)
 }

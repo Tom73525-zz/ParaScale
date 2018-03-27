@@ -46,7 +46,7 @@ object FineGrainedNode extends App {
   val n = getPropertyOrElse("n", PORTF_NUM)
   val begin = getPropertyOrElse("begin", 0)
 
-  val analysis = new FineGrainedNode analyze(Partition(seed=seed, size=size, n=n, begin=begin))
+  val analysis = new FineGrainedNode analyze(Partition(seed=seed, n=n, begin=begin))
 
   report(LOG, analysis)
 }
